@@ -1,0 +1,2996 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>无尽爬塔 - 放置挂机</title>
+<style>
+:root{
+--bg1:#0f172a; --bg2:#020617;
+--panel:rgba(30,41,59,.6);
+--panel-hover:rgba(51,65,85,.7);
+--border:rgba(148,163,184,.15);
+--border-hover:rgba(148,163,184,.3);
+--gold:#fbbf24; --fire:#f87171; --cyan:#38bdf8;
+--text:#f1f5f9; --muted:#94a3b8;
+--green:#4ade80; --red:#ef4444;
+--purple:#a78bfa; --pink:#f472b6;
+--shadow:0 4px 24px rgba(0,0,0,.3);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{
+font-family:"PingFang SC","Microsoft YaHei",system-ui,-apple-system,sans-serif;
+color:var(--text);
+background:
+radial-gradient(ellipse 80% 50% at 50% -20%,rgba(56,189,248,.15),transparent),
+radial-gradient(ellipse 60% 40% at 80% 100%,rgba(167,139,250,.12),transparent),
+linear-gradient(180deg,var(--bg1),var(--bg2));
+min-height:100vh;
+}
+#app{display:flex;flex-direction:column;height:100vh;max-width:1280px;margin:0 auto;padding:14px;gap:12px}
+header{display:flex;align-items:center;justify-content:space-between;padding:14px 22px;border-radius:14px;background:var(--panel);border:1px solid var(--border);flex-wrap:wrap;gap:8px 18px;backdrop-filter:blur(10px);box-shadow:var(--shadow)}
+.brand{font-weight:800;letter-spacing:1px;font-size:18px;background:linear-gradient(135deg,var(--gold),var(--fire));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.brand .accent{color:var(--fire)}
+.hud{display:flex;gap:20px;align-items:baseline;font-size:13px;color:var(--muted);flex-wrap:wrap}
+.hud .val{color:var(--text);font-weight:700}
+.hud .gold-val{color:var(--gold);font-weight:800;font-size:20px}
+main{flex:1;display:grid;grid-template-columns:1fr 400px;gap:12px;min-height:0}
+body.compact-info main{grid-template-columns:2fr 1fr}
+.battle{position:relative;display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--border);border-radius:14px;overflow:hidden;padding:14px;backdrop-filter:blur(10px);box-shadow:var(--shadow)}
+.floor-tag{position:absolute;top:12px;left:50%;transform:translateX(-50%);padding:5px 16px;border-radius:20px;background:rgba(15,23,42,.8);border:1px solid var(--border);font-size:12px;color:var(--muted);z-index:5;white-space:nowrap;backdrop-filter:blur(8px)}
+.floor-tag b{color:var(--gold)}
+.floor-tag .boss-tag{color:var(--fire);font-weight:800;margin-left:6px}
+.fighters{flex:1;display:flex;align-items:center;justify-content:space-around;gap:10px;min-height:0;padding-top:36px}
+.fighter{flex:1;max-width:240px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}
+.avatar{width:96px;height:96px;border-radius:24px;display:flex;align-items:center;justify-content:center;font-size:40px;font-weight:900;background:linear-gradient(160deg,rgba(56,189,248,.15),rgba(167,139,250,.1));border:2px solid var(--border);position:relative;transition:all .2s;box-shadow:0 8px 24px rgba(0,0,0,.3)}
+.fighter.attacking .avatar{animation:attackShake .3s}
+.fighter .avatar.mon-boss{border-color:var(--fire);box-shadow:0 0 30px rgba(248,113,113,.4);color:var(--fire)}
+.fighter .avatar.mon-elite{border-color:var(--purple);box-shadow:0 0 24px rgba(167,139,250,.45);color:var(--purple)}
+.fighter .avatar.mon-raging{border-color:var(--red);box-shadow:0 0 36px rgba(239,68,68,.6);color:var(--red);animation:ragePulse .5s infinite}
+@keyframes ragePulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+.name{font-size:14px;font-weight:800}
+.name.boss{color:var(--fire)}
+.name.elite{color:var(--purple)}
+.name.raging{color:var(--red);animation:rageText .5s infinite}
+@keyframes rageText{0%,100%{opacity:1}50%{opacity:.6}}
+.hp-wrap{width:100%;height:16px;border-radius:10px;background:rgba(0,0,0,.45);overflow:hidden;position:relative;box-shadow:inset 0 2px 4px rgba(0,0,0,.3)}
+.hp-fill{height:100%;border-radius:10px;background:linear-gradient(90deg,var(--red),var(--gold));transition:width .15s;width:100%}
+.hp-fill.boss{background:linear-gradient(90deg,var(--purple),var(--red))}
+.hp-fill.elite{background:linear-gradient(90deg,#7c3aed,var(--purple))}
+.hp-fill.raging{background:linear-gradient(90deg,#991b1b,var(--red));animation:rageBar .5s infinite}
+@keyframes rageBar{0%,100%{filter:brightness(1)}50%{filter:brightness(1.4)}}
+.hp-text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;text-shadow:0 1px 2px rgba(0,0,0,.9)}
+.vs{font-size:18px;font-weight:900;color:var(--muted);letter-spacing:2px;background:linear-gradient(135deg,var(--gold),var(--fire));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+@keyframes attackShake{0%{transform:translateX(0)}30%{transform:translateX(-5px)}60%{transform:translateX(4px)}100%{transform:translateX(0)}}
+.dmg{position:absolute;font-weight:900;font-size:18px;color:var(--gold);pointer-events:none;animation:floatUp 1s ease-out forwards;text-shadow:0 0 10px rgba(251,191,36,.7);z-index:6}
+.dmg.crit{color:var(--fire);font-size:26px}
+.dmg.skill{color:var(--cyan);font-size:28px}
+.dmg.mon{color:var(--red);font-size:15px}
+@keyframes floatUp{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-80px)}}
+.battle-msg{text-align:center;font-size:12px;color:var(--muted);min-height:20px;padding-top:4px}
+.battle-msg.warn{color:var(--fire);font-weight:700}
+.battle-msg.ok{color:var(--green)}
+.panel{display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--border);border-radius:14px;min-height:0;backdrop-filter:blur(10px);box-shadow:var(--shadow)}
+.tabs{display:flex;flex-wrap:wrap;border-bottom:1px solid var(--border);flex-shrink:0}
+.tab{flex:1 1 auto;min-width:60px;padding:12px 8px;text-align:center;cursor:pointer;color:var(--muted);font-size:12px;border-bottom:2px solid transparent;white-space:nowrap;transition:all .2s;font-weight:600}
+.tab:hover{color:var(--text);background:rgba(255,255,255,.04)}
+.tab.active{color:var(--cyan);border-bottom-color:var(--cyan);background:rgba(56,189,248,.08);font-weight:700}
+.tab-body{flex:1;overflow-y:auto;padding:14px;display:none}
+.tab-body.active{display:block}
+.card{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 14px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid var(--border);margin-bottom:8px;transition:all .2s}
+.card:hover{background:var(--panel-hover);border-color:var(--border-hover)}
+.card .info{flex:1;min-width:0}
+.card .name{font-weight:700;font-size:13px}
+.card .desc{color:var(--muted);font-size:11px;margin-top:3px}
+.card .lvl{color:var(--cyan);font-size:12px;font-weight:700}
+.buy-btn{padding:8px 14px;border-radius:10px;border:1px solid rgba(251,191,36,.4);background:rgba(251,191,36,.12);color:var(--gold);font-weight:700;cursor:pointer;font-size:12px;white-space:nowrap;text-align:center;transition:all .2s}
+.buy-btn:hover{background:rgba(251,191,36,.25);border-color:rgba(251,191,36,.6);transform:translateY(-1px)}
+.buy-btn:disabled{opacity:.35;cursor:not-allowed;transform:none}
+.buy-btn .cost{display:block;font-size:10px;opacity:.85}
+.stat-row{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid var(--border);margin-bottom:8px;font-size:13px;transition:all .2s}
+.stat-row:hover{background:var(--panel-hover);border-color:var(--border-hover)}
+.stat-row .label{font-weight:600}
+.stat-row .val{color:var(--gold);font-weight:800}
+.stat-row .btns{display:flex;gap:6px}
+.pt-btn{width:32px;height:32px;border-radius:10px;border:1px solid var(--border);background:rgba(255,255,255,.06);color:var(--cyan);font-weight:800;cursor:pointer;font-size:16px;transition:all .2s}
+.pt-btn:hover{background:rgba(56,189,248,.15);border-color:var(--cyan)}
+.pt-btn:disabled{opacity:.3;cursor:not-allowed}
+.equip-slot{display:flex;justify-content:space-between;align-items:center;padding:11px 14px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid var(--border);margin-bottom:8px;font-size:12px;transition:all .2s}
+.equip-slot:hover{background:var(--panel-hover);border-color:var(--border-hover)}
+.eq-name{font-weight:800}
+.q0{color:#cbd5e1}.q1{color:var(--green)}.q2{color:var(--cyan)}.q3{color:var(--purple)}.q4{color:var(--gold)}.q5{color:var(--pink);text-shadow:0 0 10px rgba(244,114,182,.6)}.q6{color:var(--fire);text-shadow:0 0 12px rgba(248,113,113,.7)}
+.ach{display:flex;gap:10px;align-items:center;padding:9px 12px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid var(--border);margin-bottom:6px;font-size:12px;transition:all .2s}
+.ach:hover{background:var(--panel-hover)}
+.ach .badge{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.06);color:var(--muted);flex-shrink:0;font-weight:800;font-size:12px}
+.ach.done .badge{background:rgba(251,191,36,.2);color:var(--gold);box-shadow:0 0 12px rgba(251,191,36,.3)}
+.ach.done .an{color:var(--gold)}
+.big-btn{width:100%;padding:13px;border-radius:12px;border:1px solid rgba(248,113,113,.5);background:linear-gradient(180deg,rgba(248,113,113,.25),rgba(248,113,113,.08));color:var(--fire);font-weight:800;cursor:pointer;font-size:14px;margin:5px 0;transition:all .2s}
+.big-btn:hover{background:linear-gradient(180deg,rgba(248,113,113,.35),rgba(248,113,113,.15));transform:translateY(-1px);box-shadow:0 4px 16px rgba(248,113,113,.2)}
+.big-btn:disabled{opacity:.35;cursor:not-allowed;transform:none;box-shadow:none}
+.ghost-btn{padding:8px 14px;border-radius:10px;border:1px solid var(--border);background:rgba(255,255,255,.05);color:var(--text);cursor:pointer;font-size:12px;transition:all .2s}
+.ghost-btn:hover{background:rgba(255,255,255,.1);border-color:var(--border-hover);transform:translateY(-1px)}
+.ghost-btn:disabled{opacity:.35;cursor:not-allowed;transform:none}
+.danger-btn{padding:8px 14px;border-radius:10px;border:1px solid rgba(239,68,68,.4);background:rgba(239,68,68,.1);color:var(--red);cursor:pointer;font-size:12px;transition:all .2s}
+.danger-btn:hover{background:rgba(239,68,68,.2)}
+select.farm-select{padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:#1e293b;color:var(--text);font-size:12px;cursor:pointer;outline:none;transition:all .2s}
+select.farm-select:hover{border-color:var(--border-hover)}
+.speed-group{display:flex;gap:6px}
+.speed-btn{padding:7px 14px;border-radius:10px;border:1px solid var(--border);background:rgba(255,255,255,.05);color:var(--muted);cursor:pointer;font-size:12px;transition:all .2s}
+.speed-btn:hover{color:var(--text);background:rgba(255,255,255,.1)}
+.speed-btn.active{color:var(--cyan);border-color:var(--cyan);background:rgba(56,189,248,.15);font-weight:700;box-shadow:0 0 12px rgba(56,189,248,.2)}
+.title-icon{font-size:32px}
+.log{margin-top:10px;padding:10px 14px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid var(--border);font-size:12px}
+.log summary{cursor:pointer;font-weight:700;color:var(--cyan)}
+.log-item{margin-top:10px;padding-top:10px;border-top:1px dashed var(--border);line-height:1.7;color:var(--muted)}
+#toast-box{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:60;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none;width:90%;max-width:440px}
+.toast{padding:10px 18px;border-radius:20px;background:rgba(15,23,42,.95);border:1px solid rgba(251,191,36,.4);color:var(--gold);font-size:12px;animation:toastIn .3s ease;text-align:center;backdrop-filter:blur(10px);box-shadow:0 8px 24px rgba(0,0,0,.4)}
+@keyframes toastIn{from{opacity:0;transform:translateY(-12px)}to{opacity:1}}
+#offlineModal{position:fixed;inset:0;background:rgba(2,6,23,.9);display:none;align-items:center;justify-content:center;z-index:50;padding:20px;backdrop-filter:blur(8px)}
+#offlineModal.show{display:flex}
+#confirmModal{position:fixed;inset:0;background:rgba(2,6,23,.9);display:none;align-items:center;justify-content:center;z-index:55;padding:20px;backdrop-filter:blur(8px)}
+#confirmModal.show{display:flex}
+#confirmModal .modal-card p{color:var(--text);font-size:14px;line-height:1.7;margin:8px 0;text-align:left}
+#confirmModal .row{display:flex;gap:10px;justify-content:center;margin-top:16px}
+.modal-card{background:#1e293b;border:1px solid rgba(251,191,36,.4);border-radius:18px;padding:30px;text-align:center;max-width:420px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,.5)}
+.modal-card h2{color:var(--gold);margin-bottom:10px;letter-spacing:2px;font-size:20px}
+.modal-card p{color:var(--muted);font-size:13px;margin:5px 0}
+.modal-card .earn{font-size:30px;font-weight:800;color:var(--gold);margin:16px 0}
+.modal-btn{margin-top:14px;padding:11px 32px;border-radius:12px;background:linear-gradient(135deg,var(--gold),var(--fire));color:#1a0a00;font-weight:800;border:none;cursor:pointer;font-size:15px;transition:all .2s}
+.modal-btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(251,191,36,.3)}
+@media(max-width:760px){
+#app{padding:8px;gap:8px}
+main{grid-template-columns:1fr;grid-template-rows:minmax(280px,40vh) 1fr;gap:8px}
+.battle{padding:10px}
+.avatar{width:68px;height:68px;font-size:28px;border-radius:18px}
+.vs{font-size:14px}
+.floor-tag{top:8px;font-size:11px;padding:4px 12px}
+.fighters{gap:6px;padding-top:32px}
+.name{font-size:12px}
+.hp-wrap{height:14px}
+.tab{padding:10px 6px;font-size:11px}
+.tab-body{padding:10px}
+.stat-row{padding:8px 10px;font-size:12px}
+.card{padding:9px 10px}
+.big-btn{padding:11px;font-size:13px}
+.ghost-btn{padding:7px 10px;font-size:11px}
+.buy-btn{padding:7px 10px;font-size:11px}
+}
+</style>
+</head>
+<body>
+<div id="app">
+<header>
+<div class="brand"><span class="accent">▼</span> 无尽爬塔</div>
+<div class="hud">
+<span>第 <b class="val" id="hudFloor">1</b> 层</span>
+<span class="gold-val" id="hudGold">0</span>
+<span>等级 <b class="val" id="hudLevel">1</b></span>
+<span>DPS <b class="val" id="hudDps">0</b></span>
+</div>
+</header>
+<main>
+<section class="battle" id="battle">
+<div class="floor-tag">第 <b id="floorNum">1</b> 层<span class="boss-tag" id="bossTag"></span><button class="ghost-btn" id="quickPauseBtn" style="margin-left:8px;padding:2px 8px;font-size:11px">⏸️</button></div>
+<div class="fighters">
+<div class="fighter" id="playerF">
+<div class="avatar" id="playerAvatar">勇</div>
+<div class="name" id="playerNameEl">勇者</div>
+<div class="hp-wrap"><div class="hp-fill" id="playerHpFill"></div><div class="hp-text" id="playerHpText"></div></div>
+</div>
+<div class="vs">VS</div>
+<div class="fighter" id="monF">
+<div class="avatar" id="monAvatar">魔</div>
+<div class="name" id="monName">史莱姆</div>
+<div class="hp-wrap"><div class="hp-fill" id="monHpFill"></div><div class="hp-text" id="monHpText"></div></div>
+</div>
+</div>
+<div class="battle-msg" id="battleMsg">勇者踏入高塔，战斗自动进行</div>
+</section>
+<aside class="panel">
+<nav class="tabs" id="tabs">
+<div class="tab active" data-tab="attrs">属性</div>
+<div class="tab" data-tab="skills">技能</div>
+<div class="tab" data-tab="equip">装备</div>
+<div class="tab" data-tab="rebirth">转生</div>
+<div class="tab" data-tab="talents">天赋</div>
+<div class="tab" data-tab="titles">称号</div>
+<div class="tab" data-tab="backpack">背包</div>
+<div class="tab" data-tab="dungeon">副本</div>
+<div class="tab" data-tab="arena">竞技场</div>
+<div class="tab" data-tab="fish">钓鱼</div>
+<div class="tab" data-tab="boss">BOSS</div>
+<div class="tab" data-tab="shop">商城</div>
+<div class="tab" data-tab="ach">成就</div>
+<div class="tab" data-tab="settings">设置</div>
+</nav>
+<div class="tab-body active" id="tab-attrs"></div>
+<div class="tab-body" id="tab-skills"></div>
+<div class="tab-body" id="tab-equip"></div>
+<div class="tab-body" id="tab-rebirth"></div>
+<div class="tab-body" id="tab-talents"></div>
+<div class="tab-body" id="tab-titles"></div>
+<div class="tab-body" id="tab-backpack"></div>
+<div class="tab-body" id="tab-dungeon"></div>
+<div class="tab-body" id="tab-arena"></div>
+<div class="tab-body" id="tab-fish"></div>
+<div class="tab-body" id="tab-boss"></div>
+<div class="tab-body" id="tab-shop"></div>
+<div class="tab-body" id="tab-ach"></div>
+<div class="tab-body" id="tab-settings"></div>
+</aside>
+</main>
+</div>
+<div id="toast-box"></div>
+<div id="offlineModal">
+<div class="modal-card">
+<h2>欢迎归来</h2>
+<p>你离开了 <b id="offlineTime">--</b></p>
+<p>离线挂机收益已为你保留</p>
+<div class="earn" id="offlineEarn">+0</div>
+<button class="modal-btn" id="offlineCollect">收下</button>
+</div>
+</div>
+<div id="confirmModal">
+<div class="modal-card">
+<p id="confirmText"></p>
+<div class="row">
+<button class="modal-btn" id="confirmOk">确定</button>
+<button class="ghost-btn" id="confirmCancel">取消</button>
+</div>
+</div>
+</div>
+<script>
+/* base64 polyfill：确保所有环境下存档编码/解码可用 */
+(function(){
+var B64='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
+if(typeof btoa!=='function'){
+  window.btoa=function(s){
+    s=String(s); var o='', i=0;
+    while(i<s.length){
+      var c1=s.charCodeAt(i++)&0xff, c2=s.charCodeAt(i++)&0xff, c3=s.charCodeAt(i++)&0xff;
+      var e1=c1>>2, e2=((c1&3)<<4)|(c2>>4), e3=isNaN(c2)?64:((c2&15)<<2)|(c3>>6), e4=isNaN(c3)?64:c3&63;
+      o+=B64[e1]+B64[e2]+B64[e3]+B64[e4];
+    }
+    return o;
+  };
+}
+if(typeof atob!=='function'){
+  window.atob=function(s){
+    s=String(s).replace(/[^A-Za-z0-9+/=]/g,''); var o='', i=0;
+    while(i<s.length){
+      var e1=B64.indexOf(s.charAt(i++)), e2=B64.indexOf(s.charAt(i++)), e3=B64.indexOf(s.charAt(i++)), e4=B64.indexOf(s.charAt(i++));
+      var c1=(e1<<2)|(e2>>4), c2=((e2&15)<<4)|(e3>>2), c3=((e3&3)<<6)|e4;
+      o+=String.fromCharCode(c1);
+      if(e3!==64) o+=String.fromCharCode(c2);
+      if(e4!==64) o+=String.fromCharCode(c3);
+    }
+    return o;
+  };
+}
+})();
+(function(){
+'use strict';
+/* ============ 常量 ============ */
+const SAVE_KEY='idle-tower-save-v1';
+const OFFLINE_CAP=8*3600*1000;
+const ATK_INTERVAL=1000;
+const MON_INTERVAL=1500;
+const CRIT_MULT=2;
+const SKILL_CD=8000;
+/* v3.0 数值上限：防止溢出导致Infinity崩溃 */
+const MAX_GOLD=1e300; // 金币上限
+const MAX_TITLE=1e19; // v3.7.9 称号数量上限提高10000倍（山河共主/摸鱼达人等）
+const MAX_MULT=1e150; // 乘数上限，防止乘法链溢出
+function safeNum(n){ if(!isFinite(n)||n==null) return 0; if(n>MAX_GOLD) return MAX_GOLD; if(n<-MAX_GOLD) return -MAX_GOLD; return n; }
+function safeMult(a,b){ const r=a*b; return isFinite(r)?r:MAX_MULT; }
+function capGold(g){ return Math.min(g, MAX_GOLD); }
+function capTitle(t){ return Math.min(t, MAX_TITLE); }
+/* v3.0.2 签到溢出补偿：称号达上限后，溢出部分按 1称号:1交易点 转化 */
+function signOverflowCompensation(gain){
+const room=MAX_TITLE-state.titleCount;
+if(room>=gain) return 0;
+const overflow=gain-room;
+state.tradePoints+=overflow; // 溢出称号转化为交易点
+return overflow;
+}
+/* ============ v3.1 新系统常量 ============ */
+// 交易点属性购买
+const ATTR_COST={atk:500,hp:300,def:400}; // 每点属性的交易点价格
+const SPEED_COST=5000; // 永久速率+0.5x的价格，上限+2x（即最高6x）
+const LUCKY_CHARM_COST=200; // 幸运符价格：下次随机事件必出好结果
+const GACHA_COST=300; // 神秘抽卡一次价格
+// 竞技场
+const ARENA_DAILY=5; // 每日挑战次数
+const ARENA_REWARD_TP=50; // 每场胜利基础交易点
+const ARENA_REWARD_COIN=10; // 每场胜利竞技场币
+// 钓鱼
+const FISH_TIME=5000; // 每次钓鱼毫秒数
+const FISH_TYPES=[
+{name:'小鲫鱼',rarity:'普通',value:5,weight:50},
+{name:'鲤鱼',rarity:'普通',value:8,weight:25},
+{name:'鲈鱼',rarity:'稀有',value:20,weight:12},
+{name:'金龙鱼',rarity:'稀有',value:35,weight:6},
+{name:'传说之鱼',rarity:'史诗',value:100,weight:4},
+{name:'时空鱼',rarity:'传说',value:500,weight:2},
+{name:'you的鱼',rarity:'神话',value:2000,weight:1},
+];
+// 老玩家补偿
+function veteranBonus(){
+const rb=state.totalRebirths||0;
+const floor=state.allTimeMax||1;
+const tp=Math.floor(rb*100+floor*10); // 转生次数×100 + 最高层×10
+const rp=Math.floor(rb*0.5); // 转生次数的一半转为转生之力
+return {tp,rp,title:rb>=10?'远古守护者':''};
+}
+const MON_NAMES=[
+['史莱姆','骷髅兵','蝙蝠','哥布林','蘑菇怪'],
+['野狼','石像鬼','暗影刺客','火精灵','岩石傀儡'],
+['地狱犬','暗影法师','骸骨骑士','毒蝎王','暴风鹰'],
+['炎魔','冰霜巨魔','暗影领主','机械守卫','混沌使徒'],
+['深渊恶魔','天罚守卫','虚空行者','不朽之王','灭世魔龙']
+];
+const SKILLS=[
+{id:'thunder',name:'雷霆一击',desc:'每 8 秒自动释放 3×攻击 伤害',baseCost:200,costMult:1.7},
+{id:'power',  name:'力量强化',desc:'攻击 +10% / 级',baseCost:150,costMult:1.6},
+{id:'iron',   name:'钢铁之躯',desc:'生命 +12% / 级',baseCost:150,costMult:1.6},
+{id:'greed',  name:'贪婪之心',desc:'金币获取 +10% / 级',baseCost:200,costMult:1.6},
+];
+const QUALITY=[
+{name:'普通',mult:1,cls:'q0'},{name:'优秀',mult:1.5,cls:'q1'},
+{name:'精良',mult:2,cls:'q2'},{name:'史诗',mult:3,cls:'q3'},
+{name:'传说',mult:5,cls:'q4'},{name:'神话',mult:8,cls:'q5'},
+{name:'至尊',mult:12,cls:'q6'}
+];
+/* v3.0 天赋系统：每次转生获得 1 天赋点 */
+const TALENTS=[
+{id:'warrior',name:'战神之力',desc:'攻击 +5% / 点',max:10},
+{id:'guardian',name:'铁壁',desc:'生命 +5% / 点',max:10},
+{id:'wealth',name:'财富',desc:'金币获取 +8% / 点',max:10},
+{id:'scholar',name:'博学',desc:'经验获取 +8% / 点',max:10},
+{id:'crit',name:'致命一击',desc:'暴击率 +2% / 点',max:10},
+{id:'lucky',name:'幸运',desc:'装备掉率 +10% / 点',max:10},
+];
+/* v3.0 随机事件：每 5 层 25% 概率触发 */
+const EVENTS=[
+{id:'chest',name:'神秘宝箱',desc:'发现一个闪闪发光的宝箱！',weight:30},
+{id:'merchant',name:'流浪商人',desc:'一位神秘商人向你兜售商品。',weight:20},
+{id:'altar',name:'古老祭坛',desc:'一座散发着微光的古老祭坛。',weight:15},
+{id:'elite',name:'精英怪物',desc:'一只强大的精英怪物挡住了去路！',weight:25},
+{id:'fountain',name:'生命之泉',desc:'你发现了一汪清澈的泉水。',weight:10},
+];
+/* v3.0 每日任务 */
+const DAILY_TASKS=[
+{id:'kill10',name:'初战告捷',desc:'击杀 10 个怪物',target:10,reward:5,type:'kills'},
+{id:'floor20',name:'勇攀高峰',desc:'到达第 20 层',target:20,reward:8,type:'floor'},
+{id:'sign',name:'每日签到',desc:'完成 1 次签到',target:1,reward:3,type:'sign'},
+{id:'boss1',name:'BOSS猎人',desc:'击败 1 个 BOSS',target:1,reward:10,type:'boss'},
+{id:'rebirth1',name:'轮回转世',desc:'转生 1 次',target:1,reward:15,type:'rebirth'},
+{id:'dungeon5',name:'副本探索',desc:'通关无尽塔 5 层',target:5,reward:8,type:'dungeon'},
+{id:'abyss3',name:'深渊探索',desc:'通关深渊塔 3 层',target:3,reward:12,type:'abyss'},
+];
+const ACHIEVEMENTS=[
+{id:'f1',name:'初入塔门',desc:'到达第 10 层',check:s=>s.allTimeMax>=10},
+{id:'f2',name:'小试牛刀',desc:'到达第 25 层',check:s=>s.allTimeMax>=25},
+{id:'f3',name:'半程冲刺',desc:'到达第 50 层',check:s=>s.allTimeMax>=50},
+{id:'f4',name:'百层之巅',desc:'到达第 100 层',check:s=>s.allTimeMax>=100},
+{id:'f5',name:'千层传说',desc:'到达第 250 层',check:s=>s.allTimeMax>=250},
+{id:'b1',name:'首杀守卫',desc:'击败 1 个 BOSS',check:s=>s.bossKills>=1},
+{id:'b2',name:'屠魔勇士',desc:'击败 10 个 BOSS',check:s=>s.bossKills>=10},
+{id:'b3',name:'深渊征服者',desc:'击败 50 个 BOSS',check:s=>s.bossKills>=50},
+{id:'g1',name:'小有积蓄',desc:'累计获得 10K 金币',check:s=>s.totalGold>=1e4},
+{id:'g2',name:'富甲一方',desc:'累计获得 1M 金币',check:s=>s.totalGold>=1e6},
+{id:'r1',name:'破而后立',desc:'转生 1 次',check:s=>s.totalRebirths>=1},
+{id:'r2',name:'轮回不止',desc:'转生 5 次',check:s=>s.totalRebirths>=5},
+{id:'e1',name:'装备收集',desc:'累计获得 5 件装备',check:s=>s.totalEquips>=5},
+{id:'e2',name:'全副武装',desc:'累计获得 25 件装备',check:s=>s.totalEquips>=25},
+{id:'d1',name:'炼丹入门',desc:'服用 10 颗丹药',check:s=>s.pillTaken>=10},
+{id:'d2',name:'丹道宗师',desc:'服用 100 颗丹药',check:s=>s.pillTaken>=100},
+{id:'d3',name:'技能新秀',desc:'服用 10 颗技能结晶',check:s=>s.skillTaken>=10},
+{id:'d4',name:'宠物伙伴',desc:'服用 10 颗宠物结晶',check:s=>s.petTaken>=10},
+{id:'t1',name:'试炼初探',desc:'通关试炼第 1 层',check:s=>s.trialMax>=1},
+{id:'t2',name:'时空行者',desc:'通关试炼第 10 层',check:s=>s.trialMax>=10},
+{id:'t3',name:'试炼之主',desc:'通关试炼第 30 层',check:s=>s.trialMax>=30},
+{id:'t4',name:'you勋章持有者',desc:'拥有 1 个 you勋章',check:s=>s.medalCount>=1},
+{id:'t5',name:'时空收藏家',desc:'拥有 10 个 you勋章',check:s=>s.medalCount>=10},
+{id:'t6',name:'基础学者',desc:'使用 10 张基础单',check:s=>s.baseScrollsUsed>=10},
+{id:'t7',name:'认可之选',desc:'拥有 1 个称号「you认可」',check:s=>s.youTitle>=1},
+{id:'t8',name:'礼包狂魔',desc:'累计开启 100 个 you神秘礼包',check:s=>s.totalGiftsOpened>=100},
+{id:'c1',name:'签到达人',desc:'累计签到 30 次',check:s=>s.signTotal>=30},
+{id:'c2',name:'称号收藏家',desc:'拥有称号总数达到 10 个',check:s=>s.titleCount+s.slackerCount+s.almostCount+s.youTitle+s.abyssLordCount>=10},
+{id:'c3',name:'亿万富翁',desc:'累计获得 10B 金币',check:s=>s.totalGold>=1e10},
+{id:'v1',name:'天赋觉醒',desc:'解锁第 1 个天赋',check:s=>s.talentPoints&&(s.talentPoints.spent||0)>0},
+{id:'v2',name:'天赋大师',desc:'天赋点累计投入 10 点',check:s=>s.talentPoints&&(s.talentPoints.spent||0)>=10},
+{id:'v3',name:'事件猎人',desc:'触发 10 次随机事件',check:s=>s.eventsTriggered>=10},
+{id:'v4',name:'精英杀手',desc:'击败 5 只精英怪',check:s=>s.eliteKills>=5},
+{id:'v5',name:'任务达人',desc:'完成 20 个每日任务',check:s=>s.dailyTasksDone>=20},
+{id:'v6',name:'狂暴终结者',desc:'在 BOSS 狂暴状态下将其击杀',check:s=>s.rageKills>=1},
+/* v3.7 深渊塔相关成就 */
+{id:'ab1',name:'深渊初探',desc:'通关深渊塔第 1 层',check:s=>s.abyssMax>=1},
+{id:'ab2',name:'深渊行者',desc:'通关深渊塔第 10 层',check:s=>s.abyssMax>=10},
+{id:'ab3',name:'深渊之主',desc:'通关深渊塔第 50 层',check:s=>s.abyssMax>=50},
+{id:'ab4',name:'深渊领主',desc:'拥有 1 个称号「深渊领主」',check:s=>s.abyssLordCount>=1},
+{id:'ab5',name:'深渊富豪',desc:'累计获得 1000 深渊币',check:s=>s.abyssCoins>=1000},
+];
+/* ============ 状态 ============ */
+function defaultState(){
+return {
+saveVer:8,
+gold:0,totalGold:0,
+level:1,exp:0,expNext:30,
+curFloor:1,maxFloor:1,allTimeMax:1,
+skills:{thunder:0,power:0,iron:0,greed:0},
+equip:{weapon:null,armor:null,charm:null,ring:null,helm:null},
+equipLv:{weapon:0,armor:0,charm:0,ring:0,helm:0},
+rebirths:0,rebirthPoints:0,storedRebirth:0,totalRebirths:0,
+bossKills:0,totalEquips:0,
+speed:1,titleCount:0,slackerCount:0,almostCount:0,lastSign:'',signCount:0,signExtra:0,signTotal:0,tradePoints:0,
+inDungeon:false,dungeonMode:'pill',dungeonView:'pill',
+dungeonFloor:0,dungeonMax:0,pills:0,pillTaken:0,lastDungeonSweep:0,
+skillFloor:0,skillMax:0,skillPills:0,skillTaken:0,lastSkillSweep:0,
+petFloor:0,petMax:0,petPills:0,petTaken:0,lastPetSweep:0,
+trialFloor:0,trialMax:0,trialResetCount:0,trialResetScrolls:0,
+medalCount:0,baseScrolls:0,baseScrollsUsed:0,youTitle:0,totalGiftsOpened:0,
+sweepCards:0,wildDogMilk:0,
+compactInfo:false,
+paused:false, // v3.7.6 暂停战斗
+disableAnim:false, // v3.7.6 禁用战斗动画（减少资源占用）
+playerName:'勇者',signResetCards:0,
+achievements:[],lastSeen:Date.now(),
+/* v3.0 新字段 */
+talentPoints:{available:0,spent:0,talents:{warrior:0,guardian:0,wealth:0,scholar:0,crit:0,lucky:0}},
+eventsTriggered:0,eliteKills:0,dailyTasksDone:0,rageKills:0,
+dailyTaskDate:'',dailyTaskIds:[],dailyTaskProgress:{},dailyTaskClaimed:{},
+eventCooldown:0,bossRaging:false,killsToday:0,dungeonKillsToday:0,
+/* v3.1 新字段 */
+boughtAttr:{atk:0,hp:0,def:0}, // 交易点购买的永久属性点
+boughtSpeed:0, // 购买的永久速率（0.5x为单位，上限4）
+luckyCharms:0, // 幸运符数量
+arenaWins:0,arenaLosses:0,arenaCoins:0,arenaDate:'',arenaUsed:0, // 竞技场
+fishing:false,fishStart:0,fishTotal:0,fishCaught:{}, // 钓鱼
+veteranClaimed:false, // 老玩家补偿是否已领取
+/* v3.2 新字段 */
+trialCoins:0, // 试炼币
+trialTitles:{conqueror:false,abyss:false,avatar:false,master:false,terminator:false}, // v3.8.0 新增时空主宰和you的终结者
+/* v3.5 新称号：通过成就获得 */
+newTitles:{warrior:false,rich:false,peak:false,rebirthMaster:false,luckyKing:false},
+battleCount:0, // 战斗次数统计
+/* v3.5 BOSS挑战 */
+bossChallenge:{date:'',count:0,bestFloor:0}, // 每日挑战次数和最高层
+trialMilestones:[], // 已领取的里程碑层数
+speedrunTickets:5, // 速通券（初始5张）
+trialHighest:0, // 试炼历史最高层（用于速通）
+/* v3.3 背包存储：所有道具均可存储/取出 */
+storedItems:{pills:0,skillPills:0,petPills:0,baseScrolls:0,trialResetScrolls:0,signResetCards:0,sweepCards:0,speedrunTickets:0,trialCoins:0,wildDogMilk:0},
+/* v3.4 新道具 */
+expPotions:0, // 经验药水：使用后获得大量经验
+goldBags:0, // 金币福袋：使用后获得大量金币
+rebirthChests:0, // 转生之力宝箱：使用后获得5点转生之力
+statPotions:0, // 属性药水：使用后永久+10攻击、+50生命、+5防御
+dailyGiftClaimed:'', // 每日特惠礼包领取日期
+/* v3.7 新称号：深渊领主（开盒子出，全属性+全收益额外乘区） */
+abyssLordCount:0, // 深渊领主称号数量
+/* v3.7 新副本：深渊塔（转生20次进入，深渊币兑换稀有物品） */
+abyssFloor:0,abyssMax:0,abyssCoins:0,lastAbyssSweep:0, // 深渊塔
+};
+}
+let state=defaultState();
+let fight={mhp:0,php:0,atkCd:0,monCd:0,stuck:false,stuckTimer:0,skillCd:0,monName:'史莱姆',isElite:false,isBoss:false,bossRage:false};
+/* ============ 派生数值 ============ */
+function talentLv(id){ return (state.talentPoints&&state.talentPoints.talents)?(state.talentPoints.talents[id]||0):0; }
+function talentAtkMult(){ return 1+0.05*talentLv('warrior'); } // 战神之力：攻击+5%/点
+function talentHpMult(){ return 1+0.05*talentLv('guardian'); } // 铁壁：生命+5%/点
+function talentGoldMult(){ return 1+0.08*talentLv('wealth'); } // 财富：金币+8%/点
+function talentExpMult(){ return 1+0.08*talentLv('scholar'); } // 博学：经验+8%/点
+function talentCritBonus(){ return 0.02*talentLv('crit'); } // 致命一击：暴击+2%/点
+function talentDropMult(){ return 1+0.10*talentLv('lucky'); } // 幸运：掉率+10%/点
+function totalRebirth(){ return state.rebirthPoints+(state.storedRebirth||0); } // 总转生之力（含背包存储，用于战力/获取/副本/服用上限）
+function rebirthCombatMult(){ return 1+0.12*totalRebirth(); } // v3.0 战力：攻击/生命/防御 +12%/点（原10%）
+function rebirthGainMult(){ return 1+0.05*totalRebirth(); } // 获取：金币/经验/装备掉率 +5%/点
+function dungeonTowerMult(){ return 1+Math.floor(state.dungeonMax/50); } // 每战胜50层无尽塔，基础属性+100%（独立乘区，转生不重置）
+function baseAtk(){ return 10+state.level*2.5; } // v3.0 攻击成长 2.5/级（原2）
+function achievementMult(){ return 1+0.10*state.achievements.length; } // 每完成 1 个成就，全属性 +10%（独立乘区）
+function almostMult(){ return 1+0.01*state.almostCount; } // 差一点就得到了：每个 +1% 基础全属性（独立乘区）
+function baseScrollMult(){ return 1+0.10*state.baseScrollsUsed; } // 基础单：每使用 1 个，全属性额外乘区 +10%
+function skillMult(){ return Math.min(1e150,1+0.0105*state.skillTaken); } // v3.8.3 上限保护
+function petMult(){ return Math.min(1e150,1+0.0105*state.petTaken); } // v3.8.3 上限保护
+function medalMult(){ return Math.min(1e150,1+state.medalCount); } // v3.8.3 上限保护
+function trialGiftMult(){ return Math.floor(state.youTitle/10)+1; } // you认可：每 10 个，试炼收益 +1 倍（向下取整）
+function dogMilkMult(){ return 1+(state.wildDogMilk||0); } // 野生狗奶：每个使装备提供的数值翻倍（自动生效，不可使用）
+function trialResetMult(){ return Math.pow(2,state.trialResetCount||0); } // 试炼重置倍率：每次重置后基础属性翻倍
+function atk(){
+let a=(baseAtk()+(state.boughtAttr?state.boughtAttr.atk:0)+(state.abyssAttr?state.abyssAttr.atk:0))*dungeonTowerMult()*rebirthCombatMult()*(1+0.10*state.skills.power)*pillMult()*skillMult()*petMult()*achievementMult()*almostMult()*baseScrollMult()*talentAtkMult()*trialConquerorMult()*abyssLordMult();
+const w=state.equip.weapon; if(w) a+=w.atk*dogMilkMult();
+const r=state.equip.ring; if(r) a+=r.atk*dogMilkMult();
+return a;
+}
+function maxHp(){
+let h=(100+state.level*25+(state.boughtAttr?state.boughtAttr.hp:0)*10+(state.abyssAttr?state.abyssAttr.hp:0))*dungeonTowerMult()*rebirthCombatMult()*(1+0.12*state.skills.iron)*petMult()*achievementMult()*almostMult()*baseScrollMult()*talentHpMult()*trialConquerorMult()*abyssLordMult();
+const a=state.equip.armor; if(a) h+=a.hp*dogMilkMult();
+const he=state.equip.helm; if(he) h+=he.hp*dogMilkMult();
+return h;
+}
+function defVal(){ return (state.level*0.5+(state.boughtAttr?state.boughtAttr.def:0)+(state.abyssAttr?state.abyssAttr.def:0))*dungeonTowerMult()*rebirthCombatMult()*achievementMult()*almostMult()*baseScrollMult()*petMult()*trialConquerorMult()*abyssLordMult(); }
+function critChance(){
+let c=0.05+talentCritBonus();
+const ch=state.equip.charm; if(ch) c+=ch.crit;
+return Math.min(0.8,c);
+}
+function dps(){ return atk()*(1+critChance()*0.5)/(ATK_INTERVAL/1000); }
+function goldMult(){ return (1+0.10*state.skills.greed)*rebirthGainMult()*titleMult()*medalMult()*talentGoldMult()*abyssLordMult(); } // v3.7 深渊领主：金币收益额外乘区
+function titleMult(){ return Math.min(1e150,1+0.10*state.titleCount); } // v3.8.3 上限保护
+function slackerMult(){ return Math.min(1e150,1+state.slackerCount); } // v3.8.3 上限保护
+function abyssLordMult(){ return 1+0.05*state.abyssLordCount; } // v3.7 深渊领主：全属性 + 全收益 ×(1+5%×数量)，额外乘区
+function equipBoost(part){ return 1+0.2*(state.equipLv[part]||0); } // 部位强化：每级 +20% 数值（强化作用于部位，换装备保留）
+/* 副本「无尽塔」数值 */
+function pillMult(){ return Math.min(1e150,1+0.0105*state.pillTaken); } // v3.8.3 上限保护
+function towerGain(f){ return Math.max(1,Math.floor(Math.max(1,Math.floor(f*0.01))*slackerMult()*medalMult())); } // 三塔统一收益：层数×1%（最小1）×摸鱼达人 ×you勋章
+function pillGain(f){ return towerGain(f); }
+function sweepTotal(maxF){ // 扫荡 = 从第 1 层到当前最高层的累计产出
+let sum=0;
+for(let f=1;f<=maxF;f++) sum+=towerGain(f);
+return sum;
+}
+function pillSweepTotal(){ return sweepTotal(state.dungeonMax); }
+function skillSweepTotal(){ return sweepTotal(state.skillMax); }
+function petSweepTotal(){ return sweepTotal(state.petMax); }
+function dungeonMonsterHp(f){ return Math.round(200*Math.pow(1.10,f-1)); }
+function dungeonMonsterAtk(f){ return Math.round(10*Math.pow(1.10,f-1)); }
+function dungeonMonsterDef(f){ return Math.round(10*Math.pow(1.10,f-1)); }
+function dungeonDmgMult(f){ return (1+f)/100; } // 特殊属性：受到的伤害减少为(1+当前层数)% → 承伤=(1+层数)%
+function dungeonEnterable(){ return totalRebirth()>=10; } // 需 10 点转生之力（含背包存储）
+/* v3.7 深渊塔：转生20次进入，更强的怪物，深渊币兑换稀有物品 */
+function abyssEnterable(){ return totalRebirth()>=20; } // 需 20 点转生之力（含背包存储）
+function abyssMaxFloor(){ return 1000; } // v3.8.2 深渊塔上限1000层
+function abyssMonsterHp(f){ const v=Math.round(500*Math.pow(1.15,Math.min(f,1000)-1)); return isFinite(v)?Math.min(v,1e300):1e300; } // v3.8.2 数值保护
+function abyssMonsterAtk(f){ const v=Math.round(25*Math.pow(1.15,Math.min(f,1000)-1)); return isFinite(v)?Math.min(v,1e300):1e300; } // v3.8.2 数值保护
+function abyssMonsterDef(f){ const v=Math.round(25*Math.pow(1.15,Math.min(f,1000)-1)); return isFinite(v)?Math.min(v,1e300):1e300; } // v3.8.2 数值保护
+function abyssDmgMult(f){ return Math.min(1,(1+Math.min(f,1000)*0.5)/100); } // v3.8.2 承伤比例最高100%，避免高层伤害被放大
+function abyssGain(f){ return Math.max(1,Math.floor(Math.max(1,Math.floor(f*0.02))*slackerMult()*medalMult()*abyssLordMult())); } // 深渊币=层数×2%（最小1）×摸鱼达人×you勋章×深渊领主
+function abyssSweepTotal(){ let sum=0; for(let f=1;f<=state.abyssMax;f++) sum+=abyssGain(f); return sum; }
+function pillMaxTaken(){ return totalRebirth()*10; } // 服用上限 = 转生之力×10（含背包存储）
+function pillNextCost(){ return Math.floor(state.pillTaken/10)+1; } // 每服用10次加消耗1层
+function skillMaxTaken(){ return totalRebirth()*10; }
+function skillNextCost(){ return Math.floor(state.skillTaken/10)+1; }
+function petMaxTaken(){ return totalRebirth()*10; }
+function petNextCost(){ return Math.floor(state.petTaken/10)+1; }
+/* 副本「来自you的试炼（另一个时空）」 */
+function trialMaxFloor(){ return 1000; } // v3.8.0 试炼上限从100层提高到1000层
+function trialEnterable(){ return Math.max(state.dungeonMax,state.skillMax,state.petMax)>=50; } // 需任一无尽塔通关 50 层
+function trialMonsterHp(f){ const v=Math.round((100+state.level*25)*0.10*Math.pow(2,Math.min(f,1000)-1)*trialResetMult()); return isFinite(v)?Math.min(v,1e300):1e300; } // v3.8.0 数值保护，避免1000层溢出
+function trialMonsterAtk(f){ const v=Math.round((10+state.level*2)*0.10*Math.pow(2,Math.min(f,1000)-1)*(1+0.10*Math.floor(Math.min(f,1000)/50))*trialResetMult()); return isFinite(v)?Math.min(v,1e300):1e300; } // 每50层攻击+10%（可叠加）
+/* v3.2 试炼新系统 */
+const TRIAL_MILESTONE_REWARD={10:{coins:50,tp:100},20:{coins:150,tp:300},30:{coins:300,tp:500,title:'试炼征服者'},50:{coins:800,tp:1000,title:'深渊行者'},75:{coins:2000,tp:3000},100:{coins:5000,tp:10000,title:'you的化身'},200:{coins:20000,tp:50000},300:{coins:50000,tp:100000},500:{coins:200000,tp:500000,title:'时空主宰'},750:{coins:500000,tp:1000000},1000:{coins:2000000,tp:5000000,title:'you的终结者'}}; // v3.8.0 里程碑扩展到1000层
+function trialCoinMult(){ return 1+state.trialFloor*0.02; } // 试炼币获取随层数递增
+function trialConquerorMult(){ return 1+(state.trialTitles&&state.trialTitles.conqueror?0.10:0)+(state.trialTitles&&state.trialTitles.abyss?0.20:0)+(state.trialTitles&&state.trialTitles.avatar?0.50:0)+(state.trialTitles&&state.trialTitles.master?1.0:0)+(state.trialTitles&&state.trialTitles.terminator?2.0:0); } // v3.8.0 新增时空主宰+100%，you的终结者+200%
+/* v3.5 新称号效果 */
+function newTitleMult(){
+let m=1;
+const nt=state.newTitles||{};
+if(nt.warrior) m*=1.15; // 百战不殆：+15%全属性
+if(nt.peak) m*=1.25; // 登峰造极：+25%全属性
+return m;
+}
+function newTitleGoldMult(){
+let m=1;
+const nt=state.newTitles||{};
+if(nt.rich) m*=1.20; // 富甲一方：+20%金币获取
+return m;
+}
+function newTitleRebirthMult(){
+let m=1;
+const nt=state.newTitles||{};
+if(nt.rebirthMaster) m*=1.30; // 转生大师：+30%转生之力获取
+return m;
+}
+function newTitleDropMult(){
+let m=1;
+const nt=state.newTitles||{};
+if(nt.luckyKing) m*=1.50; // 欧皇附体：+50%稀有掉落率
+return m;
+}
+/* v3.5 检查新称号获取条件 */
+function checkNewTitles(){
+const nt=state.newTitles||{};
+let gained=[];
+if(!nt.warrior && state.battleCount>=10000){ nt.warrior=true; gained.push('百战不殆'); }
+if(!nt.rich && state.totalGold>=1e100){ nt.rich=true; gained.push('富甲一方'); }
+if(!nt.peak && state.allTimeMax>=1000){ nt.peak=true; gained.push('登峰造极'); }
+if(!nt.rebirthMaster && state.totalRebirths>=100){ nt.rebirthMaster=true; gained.push('转生大师'); }
+if(!nt.luckyKing && (state.totalGiftsOpened||0)>=1000){ nt.luckyKing=true; gained.push('欧皇附体'); }
+if(gained.length>0){
+toast('获得新称号：「'+gained.join('」「')+'」！');
+save();
+}
+}
+/* ============ v3.5 BOSS挑战 ============ */
+function bossChallengeCount(){
+const today=todayStr();
+if(!state.bossChallenge) state.bossChallenge={date:'',count:0,bestFloor:0};
+if(state.bossChallenge.date!==today){ state.bossChallenge.date=today; state.bossChallenge.count=0; }
+return 3-state.bossChallenge.count;
+}
+function startBossChallenge(){
+if(bossChallengeCount()<=0){ toast('今日BOSS挑战次数已用完，明天再来'); return; }
+if(!state.bossChallenge) state.bossChallenge={date:'',count:0,bestFloor:0};
+state.bossChallenge.count++;
+// BOSS属性 = 当前层怪物 × 10
+const f=state.curFloor;
+const bossHp=monsterHp(f)*10;
+const bossAtk=monsterAtk(f)*10;
+// 模拟战斗：计算玩家DPS和BOSS DPS
+const playerDps=Math.max(1,atk());
+const bossDps=Math.max(1,bossAtk-defVal());
+const playerTime=maxHp()/bossDps;
+const bossTime=bossHp/playerDps;
+if(playerTime<bossTime){
+// 玩家输了
+toast('BOSS太强了！你被击败了，下次再来');
+return;
+}
+// 玩家赢了，获得奖励
+const goldReward=monsterGold(f)*100*goldMult();
+const expReward=monsterExp(f)*50;
+state.gold=capGold(state.gold+goldReward);
+state.totalGold=capGold(state.totalGold+goldReward);
+gainExp(expReward);
+// 随机稀有道具
+const r=Math.random();
+let extra='';
+if(r<0.1){ state.rebirthPoints+=5; extra='、转生之力+5'; }
+else if(r<0.2){ state.tradePoints+=50; extra='、交易点+50'; }
+else if(r<0.3){ state.speedrunTickets=(state.speedrunTickets||0)+1; extra='、速通券+1'; }
+else if(r<0.4){ state.trialCoins=(state.trialCoins||0)+100; extra='、试炼币+100'; }
+// 更新最高层
+if(f>(state.bossChallenge.bestFloor||0)) state.bossChallenge.bestFloor=f;
+save(); renderAll(); updateHUD();
+toast('击败BOSS！获得金币+'+fmt(goldReward)+'、经验+'+fmt(expReward)+extra);
+}
+function renderBossChallenge(){
+const box=document.getElementById('tab-boss');
+if(!box) return;
+const remaining=bossChallengeCount();
+const best=state.bossChallenge?state.bossChallenge.bestFloor||0:0;
+box.innerHTML=''
++'<div class="stat-row"><div class="label">今日剩余次数</div><div class="val" style="color:var(--gold)">'+remaining+' / 3 次</div></div>'
++'<div class="stat-row"><div class="label">历史最高挑战层</div><div class="val">'+best+' 层</div></div>'
++'<div class="stat-row"><div class="label">当前挑战层</div><div class="val" style="color:var(--cyan)">'+state.curFloor+' 层</div></div>'
++'<div style="font-size:12px;color:var(--muted);line-height:1.8;margin:10px 0">'
++'BOSS属性 = 当前层怪物属性 × <b style="color:var(--fire)">10</b><br>'
++'战胜奖励 = 当前层金币 × <b style="color:var(--gold)">100</b> + 经验 × <b style="color:var(--cyan)">50</b> + 随机稀有道具<br>'
++'每天可挑战 <b style="color:var(--gold)">3</b> 次，挑战当前层的BOSS。<br>'
++'<b style="color:var(--fire)">提示：</b>建议在卡关时挑战，BOSS难度随当前层递增。'
++'</div>'
++'<button class="big-btn" id="startBossBtn" '+(remaining<=0?'disabled':'')+'>'+(remaining<=0?'今日挑战次数已用完':'开始挑战当前层BOSS')+'</button>';
+const btn=document.getElementById('startBossBtn');
+if(btn) btn.onclick=startBossChallenge;
+}
+function trialMonsterDef(f){ const v=Math.round(state.level*0.5*0.10*Math.pow(2,Math.min(f,1000)-1)*Math.pow(2,Math.floor(Math.min(f,1000)/100))*trialResetMult()); return isFinite(v)?Math.min(v,1e300):1e300; } // 每100层护甲翻倍（可叠加），v3.8.0 数值保护
+function trialFixedReduce(){ return 0.10; } // 怪物额外固定减伤 = 其最大生命值的 10%（但不超过玩家攻击力的50%，避免高层卡死）
+function monsterHp(f){ return Math.round(12*Math.pow(1.12,f-1)*(f%10===0?5:1)); } // v3.0 HP增长1.12（原1.14），减少卡关
+function monsterAtk(f){ return Math.round(3*Math.pow(1.10,f-1)); } // v3.0 攻击增长1.10（原1.11）
+function monsterGold(f){ return Math.round(6*Math.pow(1.10,f-1)*(f%10===0?5:1)); }
+function monsterExp(f){ return Math.round(4*Math.pow(1.10,f-1)*(f%10===0?2:1)); }
+function monsterName(f){
+const t=Math.min(Math.floor(f/25),MON_NAMES.length-1);
+const list=MON_NAMES[t];
+return list[(f*7)%list.length];
+}
+function skillCost(s){ const c=Math.round(s.baseCost*Math.pow(s.costMult,state.skills[s.id])); return Math.min(c,1e300); } // v3.3 费用封顶，避免溢出Infinity
+function skillMaxed(s){ return s.baseCost*Math.pow(s.costMult,state.skills[s.id])>1e300; } // v3.3 判断技能是否已满级（费用溢出）
+function rebirthGain(){ return Math.floor(state.maxFloor/20); }
+function rebirthGainActual(){ return Math.floor(rebirthGain()*slackerMult()*medalMult()); } // 摸鱼达人 / you勋章：转生之力获取倍率
+function estGoldPerSec(){
+const killT=Math.max(1.5,monsterHp(state.curFloor)/Math.max(1,dps()));
+return monsterGold(state.curFloor)*goldMult()/killT;
+}
+/* ============ 工具 ============ */
+function fmt(n){
+if(!isFinite(n)||n==null) return '∞';
+if(n<0) return '-'+fmt(-n);
+if(n<1000) return Math.floor(n).toString();
+if(n>=1e48) return n.toExponential(2); // v3.8.3 超大数据（>1e48）用科学计数法
+const units=['K','M','B','T','Qa','Qi','Sx','Sp','Oc','No','Dc','UD','DD','TD','QaD','QiD','SxD','SpD','OcD','NoD','Vg']; // v3.8.3 扩展到1e66
+const tier=Math.floor(Math.log10(n)/3);
+if(tier-1>=units.length) return n.toExponential(2);
+const scaled=n/Math.pow(10,tier*3);
+return scaled.toFixed(scaled>=100?1:2)+units[tier-1];
+}
+function fmtTime(ms){
+const s=Math.floor(ms/1000);
+if(s<60) return s+' 秒';
+const h=Math.floor(s/3600),m=Math.floor((s%3600)/60);
+return h>0?h+' 小时 '+m+' 分钟':m+' 分钟';
+}
+function toast(msg){
+const box=document.getElementById('toast-box');
+const el=document.createElement('div'); el.className='toast'; el.textContent=msg;
+box.appendChild(el);
+setTimeout(()=>{el.style.transition='opacity .4s';el.style.opacity='0';setTimeout(()=>el.remove(),400);},2400);
+}
+function setMsg(t,cls){
+const el=document.getElementById('battleMsg');
+el.textContent=t; el.className='battle-msg'+(cls?' '+cls:'');
+}
+let confirmCb=null;
+function myConfirm(msg,cb){
+document.getElementById('confirmText').textContent=msg;
+document.getElementById('confirmModal').classList.add('show');
+confirmCb=cb;
+}
+function bindConfirm(){
+document.getElementById('confirmOk').onclick=()=>{
+document.getElementById('confirmModal').classList.remove('show');
+const cb=confirmCb; confirmCb=null; if(cb) cb(true);
+};
+document.getElementById('confirmCancel').onclick=()=>{
+document.getElementById('confirmModal').classList.remove('show');
+confirmCb=null;
+};
+}
+/* ============ 战斗 ============ */
+let _battleRectCache=null; // v3.7.5 缓存战斗区域尺寸，避免每次getBoundingClientRect触发重排
+let _dmgCount=0; // v3.7.5 限制同时存在的伤害数字数量
+let _trialDmgCounter=0; // v3.7.6 试炼中伤害数字计数，减少显示频率
+function spawnDmg(d,crit,isMon,isSkill){
+if(state.disableAnim) return; // v3.7.6 禁用战斗动画时跳过伤害数字
+/* v3.7.6 试炼优化：试炼中每3次攻击才显示1次伤害数字，减少DOM操作 */
+const isTrial=state.inDungeon&&state.dungeonMode==='trial';
+if(isTrial){ _trialDmgCounter++; if(_trialDmgCounter%3!==0) return; }
+const battle=document.getElementById('battle');
+if(!battle) return;
+if(_dmgCount>20) return; // v3.7.5 最多同时显示20个伤害数字，避免过多元素导致重排
+if(!_battleRectCache) _battleRectCache=battle.getBoundingClientRect();
+const rect=_battleRectCache;
+const el=document.createElement('div');
+el.className='dmg'+(crit?' crit':'')+(isMon?' mon':'')+(isSkill?' skill':'');
+el.textContent=Math.round(d);
+el.style.left=(rect.width*(isMon?0.68:0.32)+(Math.random()*36-18))+'px';
+el.style.top=(rect.height*0.4)+'px';
+battle.appendChild(el);
+_dmgCount++;
+setTimeout(()=>{ el.remove(); _dmgCount--; },1000);
+}
+function setAttack(who){
+if(state.disableAnim) return; // v3.7.6 禁用战斗动画时跳过攻击动画
+const f=document.getElementById(who==='player'?'playerF':'monF');
+if(!f) return;
+f.classList.remove('attacking');
+requestAnimationFrame(()=>{ f.classList.add('attacking'); });
+setTimeout(()=>f.classList.remove('attacking'),300);
+}
+function gainExp(e){
+state.exp+=e*titleMult()*rebirthGainMult()*medalMult()*talentExpMult()*abyssLordMult(); // v3.7 深渊领主：经验收益额外乘区，天赋博学+8%/点
+if(!isFinite(state.exp)) state.exp=0;
+/* v3.8.2 优化：使用数学公式直接计算升级，避免大量经验时while循环+toast导致卡顿 */
+let leveled=0;
+while(state.exp>=state.expNext&&leveled<10000){ // 最多循环10000次，防止极端情况
+state.exp-=state.expNext;
+state.level++;
+state.expNext=Math.round(state.expNext*1.25);
+if(!isFinite(state.expNext)) state.expNext=1e300;
+leveled++;
+}
+if(leveled>0) toast('升级！当前等级 '+state.level+'（连升 '+leveled+' 级）');
+}
+function tick(){
+if(state.paused) return; // v3.7.6 暂停战斗
+/* v3.5 战斗次数统计 */
+state.battleCount=(state.battleCount||0)+1;
+/* v3.1 钓鱼检查 */
+if(state.fishing) checkFish(); // v3.1.1 仅在钓鱼时检查，减少无效调用
+const dt=150*state.speed*(1+state.boughtSpeed*0.5); // v3.8.3 tick间隔150ms，包含购买的永久速率
+const mode=state.inDungeon?(state.dungeonMode||'pill'):'none';
+const isTrial=mode==='trial';
+const isAbyss=mode==='abyss';
+const isDun=mode!=='none';
+/* v3.8.1 属性缓存：一次tick内只计算一次，避免大数值时重复计算导致卡顿 */
+const _atk=atk(), _maxHp=maxHp(), _def=defVal();
+let f, mHp, mAtk;
+if(isTrial){ f=Math.max(1,state.trialFloor); mHp=trialMonsterHp(f); mAtk=trialMonsterAtk(f); }
+else if(isAbyss){ f=Math.max(1,state.abyssFloor); mHp=abyssMonsterHp(f); mAtk=abyssMonsterAtk(f); }
+else if(isDun){ f=(mode==='skill'?state.skillFloor:(mode==='pet'?state.petFloor:state.dungeonFloor)); if(f<1)f=1; mHp=dungeonMonsterHp(f); mAtk=dungeonMonsterAtk(f); }
+else { f=state.curFloor; mHp=monsterHp(f); mAtk=monsterAtk(f); }
+/* v3.0 BOSS狂暴：主塔BOSS血量低于30%时攻击翻倍 */
+const isBossFloor=!isDun&&state.curFloor%10===0;
+let bossRaging=false;
+if(isBossFloor&&fight.mhp>0&&fight.mhp<mHp*0.3){ bossRaging=true; fight.bossRage=true; } else if(!isBossFloor){ fight.bossRage=false; }
+if(fight.stuck){
+fight.stuckTimer-=dt;
+if(fight.stuckTimer<=0){ fight.stuck=false; fight.php=maxHp(); setMsg('恢复战力，继续挑战',null); }
+updateBattle(); return;
+}
+// 雷霆一击（技能伤害受技能结晶 ×skillMult 加成）
+fight.skillCd-=dt;
+if(fight.skillCd<=0&&state.skills.thunder>0){
+const skillOverflow=-fight.skillCd; // v3.7.9 多余时间累积，提高速率精度
+fight.skillCd=SKILL_CD-skillOverflow;
+let d=_atk*3*(1+0.5*state.skills.thunder)*skillMult();
+if(isAbyss) d*=abyssDmgMult(f);
+else if(isDun&&!isTrial) d*=dungeonDmgMult(f);
+fight.mhp-=d;
+spawnDmg(d,false,false,true);
+setAttack('player');
+}
+// 角色攻击
+fight.atkCd-=dt;
+if(fight.atkCd<=0){
+const atkOverflow=-fight.atkCd; // v3.7.9 多余时间累积，提高速率精度
+fight.atkCd=ATK_INTERVAL-atkOverflow;
+let d=_atk; let crit=Math.random()<critChance();
+if(crit) d*=CRIT_MULT;
+if(isTrial){ const def=trialMonsterDef(f); const fixedReduce=Math.min(trialMonsterHp(f)*trialFixedReduce(), _atk*0.5); d=Math.max(1,(d-def)-fixedReduce); } // v3.7.1 试炼：固定减伤不超过玩家攻击力50%，避免高层卡死
+else if(isAbyss){ const def=abyssMonsterDef(f); d=Math.max(1,(d-def))*abyssDmgMult(f); } // v3.7 深渊塔：先扣护甲，再受伤害减免
+else if(isDun){ const def=dungeonMonsterDef(f); d=Math.max(1,(d-def))*dungeonDmgMult(f); }
+fight.mhp-=d;
+spawnDmg(d,crit,false,false);
+setAttack('player');
+}
+// 怪物攻击（v3.0 BOSS狂暴时攻击翻倍）
+fight.monCd-=dt;
+if(fight.monCd<=0){
+const monOverflow=-fight.monCd; // v3.7.9 多余时间累积，提高速率精度
+fight.monCd=MON_INTERVAL-monOverflow;
+let atkVal=mAtk;
+if(bossRaging) atkVal*=2;
+if(fight.isElite) atkVal*=1.5;
+const d=Math.max(1,atkVal-_def*0.6);
+fight.php-=d;
+spawnDmg(d,false,true,false);
+setAttack('mon');
+}
+// 击杀
+if(fight.mhp<=0){
+if(isTrial){
+const n=trialGiftMult();
+state.totalGiftsOpened+=n;
+batchOpenTrialGift(n); // v3.7.8 批量开礼包，避免卡顿
+/* v3.2 试炼币获取：每层基础5币，随层数递增，受you勋章和试炼称号加成 */
+const coinGain=Math.floor(5*trialCoinMult()*medalMult()*trialConquerorMult());
+state.trialCoins+=coinGain;
+state.trialFloor++;
+state.trialMax=Math.max(state.trialMax,state.trialFloor);
+state.trialHighest=Math.max(state.trialHighest,state.trialMax); // v3.2 历史最高层（用于速通）
+/* v3.2 里程碑奖励：每10层 */
+const milestone=TRIAL_MILESTONE_REWARD[state.trialFloor];
+if(milestone&&state.trialMilestones.indexOf(state.trialFloor)===-1){
+state.trialMilestones.push(state.trialFloor);
+state.trialCoins+=milestone.coins;
+state.tradePoints+=milestone.tp;
+let milestoneMsg='试炼里程碑！第'+state.trialFloor+'层：+'+milestone.coins+'试炼币、+'+milestone.tp+'交易点';
+if(milestone.title){
+if(milestone.title==='试炼征服者') state.trialTitles.conqueror=true;
+else if(milestone.title==='深渊行者') state.trialTitles.abyss=true;
+else if(milestone.title==='you的化身') state.trialTitles.avatar=true;
+else if(milestone.title==='时空主宰') state.trialTitles.master=true; // v3.8.0
+else if(milestone.title==='you的终结者') state.trialTitles.terminator=true; // v3.8.0
+milestoneMsg+='，获得称号「'+milestone.title+'」';
+}
+toast(milestoneMsg);
+}
+if(state.trialFloor>trialMaxFloor()) state.trialFloor=trialMaxFloor(); // 100层封顶可反复刷
+fight.mhp=trialMonsterHp(state.trialFloor);
+fight.monName='you·试炼者·'+state.trialFloor;
+fight.php=Math.min(_maxHp,fight.php+_maxHp*0.25);
+fight.atkCd=ATK_INTERVAL; fight.monCd=MON_INTERVAL; // v3.7.4 副本击杀后冷却与普通战斗一致，让速率加成更明显
+setMsg('试炼第 '+state.trialFloor+' 层，获得 you的神秘礼包 ×'+n+'、试炼币 +'+coinGain,null);
+checkAchievements();
+save();
+}else if(isAbyss){
+/* v3.7 深渊塔击杀逻辑 */
+const g=abyssGain(state.abyssFloor);
+state.abyssCoins+=g;
+state.abyssFloor++;
+if(state.abyssFloor>abyssMaxFloor()) state.abyssFloor=abyssMaxFloor(); // v3.8.2 上限保护
+state.abyssMax=Math.max(state.abyssMax,state.abyssFloor);
+state.dungeonKillsToday++; updateDailyProgress('dungeon',1); updateDailyProgress('abyss',1); // v3.7.3 深渊塔每日任务
+fight.mhp=abyssMonsterHp(state.abyssFloor);
+fight.monName='深渊领主·'+state.abyssFloor;
+fight.php=Math.min(_maxHp,fight.php+_maxHp*0.25);
+fight.atkCd=ATK_INTERVAL; fight.monCd=MON_INTERVAL; // v3.7.4 副本击杀后冷却与普通战斗一致，让速率加成更明显
+setMsg('深渊塔第 '+state.abyssFloor+' 层，获得 '+g+' 深渊币',null);
+checkAchievements();
+}else if(isDun){
+let g;
+if(mode==='skill'){ g=towerGain(state.skillFloor); state.skillPills+=g; state.skillFloor++; state.skillMax=Math.max(state.skillMax,state.skillFloor); state.dungeonKillsToday++; updateDailyProgress('dungeon',1); }
+else if(mode==='pet'){ g=towerGain(state.petFloor); state.petPills+=g; state.petFloor++; state.petMax=Math.max(state.petMax,state.petFloor); state.dungeonKillsToday++; updateDailyProgress('dungeon',1); }
+else { g=pillGain(state.dungeonFloor); state.pills+=g; state.dungeonFloor++; state.dungeonMax=Math.max(state.dungeonMax,state.dungeonFloor); state.dungeonKillsToday++; updateDailyProgress('dungeon',1); }
+fight.mhp=dungeonMonsterHp((mode==='skill'?state.skillFloor:(mode==='pet'?state.petFloor:state.dungeonFloor)));
+fight.monName='深渊守卫·'+(mode==='skill'?state.skillFloor:(mode==='pet'?state.petFloor:state.dungeonFloor));
+fight.php=Math.min(_maxHp,fight.php+_maxHp*0.25);
+fight.atkCd=ATK_INTERVAL; fight.monCd=MON_INTERVAL; // v3.7.4 副本击杀后冷却与普通战斗一致，让速率加成更明显
+setMsg((mode==='skill'?'技能塔':'宠物塔')+'第 '+(mode==='skill'?state.skillFloor:(mode==='pet'?state.petFloor:state.dungeonFloor))+' 层，获得 '+g+(mode==='skill'?' 颗技能结晶':(mode==='pet'?' 颗宠物结晶':' 颗丹药')),null);
+checkAchievements();
+}else{
+/* v3.0 主塔击杀逻辑 */
+const wasBoss=state.curFloor%10===0;
+const wasElite=fight.isElite;
+if(wasBoss&&bossRaging) state.rageKills++; // 狂暴状态下击杀BOSS
+if(wasElite){ state.eliteKills++; }
+state.killsToday++; updateDailyProgress('kills',1);
+let g=monsterGold(state.curFloor)*goldMult();
+let e=monsterExp(state.curFloor);
+if(wasElite){ g*=2; e*=2; } // 精英怪双倍金币经验
+state.gold=capGold(state.gold+g); state.totalGold=capGold(state.totalGold+g); gainExp(e);
+if(wasBoss){ state.bossKills++; updateDailyProgress('boss',1); toast('击败 BOSS！掉落高级装备'); dropEquip(true); }
+else if(wasElite){ toast('击败精英怪！必掉装备'); dropEquip(true); }
+else if(Math.random()<0.05*rebirthGainMult()*talentDropMult()) dropEquip(false);
+state.curFloor++;
+state.maxFloor=Math.max(state.maxFloor,state.curFloor);
+state.allTimeMax=Math.max(state.allTimeMax,state.curFloor);
+updateDailyProgress('floor',state.curFloor);
+/* v3.0 随机事件：每5层有25%概率触发（非BOSS层） */
+fight.isElite=false; fight.bossRage=false;
+if(state.curFloor%5===0&&state.curFloor%10!==0&&Math.random()<0.25){
+triggerEvent();
+}
+/* v3.0 事件触发后统一设置怪物血量/名字：精英怪3倍血量 */
+if(fight.isElite){
+fight.mhp=monsterHp(state.curFloor)*3;
+fight.monName='精英·'+monsterName(state.curFloor);
+}else{
+fight.mhp=monsterHp(state.curFloor);
+fight.monName=monsterName(state.curFloor);
+}
+fight.php=Math.min(_maxHp,fight.php+_maxHp*0.25);
+fight.atkCd=ATK_INTERVAL; fight.monCd=MON_INTERVAL; // v3.7.4 击杀后冷却与普通战斗一致，让速率加成更明显
+setMsg('到达第 '+state.curFloor+' 层'+(state.curFloor%10===0?' · BOSS 来袭！':(fight.isElite?' · 精英怪！':''))+'，获得 '+fmt(g)+' 金币',state.curFloor%10===0?'warn':null);
+checkAchievements();
+}
+}
+// 死亡卡层：怪物回满血，3 秒后自动再战
+if(fight.php<=0){
+fight.stuck=true; fight.stuckTimer=3000; fight.php=0;
+// 精英怪死亡后保持精英怪状态，血量重置为3倍
+fight.mhp=fight.isElite?monsterHp(state.curFloor)*3:mHp;
+fight.bossRage=false; // 狂暴状态重置
+setMsg('战力不足！怪物已回满血，3 秒后自动再战','warn');
+}
+}
+/* ============ 装备 ============ */
+function rollQuality(boss){
+const r=Math.random();
+if(boss){ if(r<0.03)return 6; if(r<0.11)return 5; if(r<0.26)return 4; if(r<0.61)return 3; if(r<0.86)return 2; return 1; }
+if(r<0.0015)return 6; if(r<0.008)return 5; if(r<0.03)return 3; if(r<0.12)return 2; if(r<0.35)return 1; return 0;
+}
+function partName(p){ return p==='weapon'?'武器':p==='armor'?'护甲':p==='charm'?'护符':p==='ring'?'戒指':'头盔'; }
+function itemValue(it){
+if(it.part==='weapon') return it.atk;
+if(it.part==='armor') return it.hp;
+if(it.part==='charm') return it.crit*100;
+if(it.part==='ring') return it.atk*1.1;
+return it.hp;
+}
+function itemDesc(it){
+if(it.part==='weapon'||it.part==='ring') return '+'+fmt(it.atk)+' 攻击';
+if(it.part==='armor'||it.part==='helm') return '+'+fmt(it.hp)+' 生命';
+return '+'+Math.round(it.crit*100)+'% 暴击';
+}
+function dropEquip(boss){
+const q=rollQuality(boss);
+const tier=Math.floor(state.maxFloor/10)+1;
+const parts=['weapon','armor','charm','ring','helm'];
+const part=parts[Math.floor(Math.random()*parts.length)];
+const mult=QUALITY[q].mult;
+/* v3.3 装备属性成长率提高：基础值×(1+tier×0.1)，让后期装备更有价值 */
+const tierMult=1+tier*0.1;
+let item={part,q,full:QUALITY[q].name+'·'+partName(part),uid:'e'+Date.now()+Math.floor(Math.random()*999)};
+if(part==='weapon'||part==='ring') item.atk=Math.round((12+8*tier)*mult*tierMult);
+else if(part==='armor'||part==='helm') item.hp=Math.round((50+30*tier)*mult*tierMult);
+else item.crit=Math.min(0.30,(0.015+0.006*tier)*mult);
+state.totalEquips++;
+const cur=state.equip[part];
+if(!cur||itemValue(item)>itemValue(cur)){
+state.equip[part]=item; // 装备不再进背包：新装备直接穿戴，旧装备直接丢弃
+toast('获得并装备：'+QUALITY[q].name+' '+partName(part)+'（'+itemDesc(item)+'）');
+}
+// 不如当前装备的直接丢弃，不提示
+renderAll(); checkAchievements();
+}
+/* ============ v3.0 随机事件系统 ============ */
+function triggerEvent(){
+state.eventsTriggered++;
+let ev;
+/* v3.1 幸运符：必出宝箱或精英怪（好结果） */
+if(state.luckyCharms>0){
+state.luckyCharms--;
+ev=Math.random()<0.5?EVENTS.find(e=>e.id==='chest'):EVENTS.find(e=>e.id==='elite');
+toast('【幸运符生效】下次事件必出好结果！');
+}else{
+const totalW=EVENTS.reduce((s,e)=>s+e.weight,0);
+let r=Math.random()*totalW;
+ev=EVENTS[0];
+for(const e of EVENTS){ r-=e.weight; if(r<=0){ ev=e; break; } }
+}
+switch(ev.id){
+case 'chest':{
+const g=monsterGold(state.curFloor)*5*goldMult();
+state.gold=capGold(state.gold+g); state.totalGold=capGold(state.totalGold+g);
+toast('【事件】神秘宝箱！获得 '+fmt(g)+' 金币');
+break;
+}
+case 'merchant':{
+const g=monsterGold(state.curFloor)*3*goldMult();
+state.gold=capGold(state.gold+g); state.totalGold=capGold(state.totalGold+g);
+toast('【事件】流浪商人低价出售！获得 '+fmt(g)+' 金币');
+break;
+}
+case 'altar':{
+state.level++;
+state.expNext=Math.round(30*Math.pow(1.25,state.level-1));
+toast('【事件】古老祭坛！等级 +1');
+break;
+}
+case 'elite':{
+fight.isElite=true; // 血量和名字在 tick() 中统一设置，避免被覆盖
+toast('【事件】精英怪物出现！3倍血量，击杀双倍奖励');
+break;
+}
+case 'fountain':{
+fight.php=maxHp();
+toast('【事件】生命之泉！生命值完全恢复');
+break;
+}
+}
+checkAchievements();
+}
+/* ============ v3.0 天赋系统 ============ */
+function upgradeTalent(id){
+const t=TALENTS.find(x=>x.id===id);
+if(!t) return;
+const lv=talentLv(id);
+if(lv>=t.max){ toast('该天赋已满级'); return; }
+if(!state.talentPoints||state.talentPoints.available<1){ toast('天赋点不足（每次转生获得 1 点）'); return; }
+state.talentPoints.available--;
+state.talentPoints.spent++;
+state.talentPoints.talents[id]++;
+toast(t.name+' 升级到 Lv.'+(lv+1));
+renderAll(); checkAchievements();
+}
+function upgradeCost(part){ return 0; } // 装备强化已取消，保留空实现避免引用报错
+function upgradeEquip(part){ toast('装备强化已取消'); }
+/* ============ v3.0 每日任务系统 ============ */
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function initDailyTasks(){
+const today=todayStr();
+if(state.dailyTaskDate!==today){
+state.dailyTaskDate=today;
+state.killsToday=0; state.dungeonKillsToday=0;
+// 随机选3个任务
+const shuffled=[...DAILY_TASKS].sort(()=>Math.random()-0.5);
+state.dailyTaskIds=shuffled.slice(0,3).map(t=>t.id);
+state.dailyTaskProgress={};
+state.dailyTaskClaimed={};
+state.dailyTaskIds.forEach(id=>{ state.dailyTaskProgress[id]=0; state.dailyTaskClaimed[id]=false; });
+}
+}
+function updateDailyProgress(type,val){
+if(!state.dailyTaskIds||state.dailyTaskIds.length===0) initDailyTasks();
+state.dailyTaskIds.forEach(id=>{
+const t=DAILY_TASKS.find(x=>x.id===id);
+if(!t||t.type!==type) return;
+if(type==='floor'){ state.dailyTaskProgress[id]=Math.max(state.dailyTaskProgress[id]||0,val); }
+else { state.dailyTaskProgress[id]=(state.dailyTaskProgress[id]||0)+val; }
+});
+}
+function claimDailyTask(id){
+const t=DAILY_TASKS.find(x=>x.id===id);
+if(!t) return;
+if(state.dailyTaskClaimed[id]){ toast('已领取'); return; }
+if((state.dailyTaskProgress[id]||0)<t.target){ toast('任务未完成'); return; }
+state.dailyTaskClaimed[id]=true;
+state.tradePoints+=t.reward;
+state.dailyTasksDone++;
+toast('任务完成！获得 '+t.reward+' 交易点');
+renderAll(); checkAchievements();
+}
+/* ============ 转生 / 存档 / 离线 ============ */
+function doRebirth(){
+const gainRaw=rebirthGain();
+const gain=rebirthGainActual();
+if(gainRaw<1){ toast('本轮至少到达 20 层才能转生'); return; }
+myConfirm('转生将重置：金币 / 经验，等级保留 40%'+(state.totalRebirths>=100?'，并保留转生前最高层-100层':(state.totalRebirths>=50?'，并保留转生前一半的关卡':'，层数重置为第 1 层'))+'。获得 '+gain+' 点转生之力（每点战力 +12%、全属性获取 +5%，永久）+ 1 天赋点。装备、技能、丹药与副本「无尽塔」进度保留。确定转生？',ok=>{
+if(!ok) return;
+const keepFloor=state.totalRebirths>=100?Math.max(1,state.maxFloor-100):(state.totalRebirths>=50?Math.max(1,Math.floor(state.maxFloor/2)):1); // v3.7.1 转生100次后，起始层数=最高层-100
+state.rebirths++; state.totalRebirths++;
+state.rebirthPoints+=gain;
+/* v3.3 天赋点获取量随转生次数增加：前10次1点，10-50次2点，50次以上3点 */
+if(!state.talentPoints) state.talentPoints={available:0,spent:0,talents:{warrior:0,guardian:0,wealth:0,scholar:0,crit:0,lucky:0}};
+const talentGain=state.totalRebirths>=50?3:(state.totalRebirths>=10?2:1);
+state.talentPoints.available+=talentGain;
+updateDailyProgress('rebirth',1);
+state.gold=0; state.curFloor=keepFloor; state.maxFloor=keepFloor;
+const keepLevel=Math.max(1,Math.floor(state.level*0.4));
+state.level=keepLevel; state.exp=0; state.expNext=Math.round(30*Math.pow(1.25,keepLevel-1));
+state.inDungeon=false;
+fightReset();
+toast('转生成功！获得 '+gain+' 点转生之力 + '+talentGain+' 天赋点'+(keepFloor>1?'，保留至第 '+keepFloor+' 层':'')+'，正在自动快速推进...');
+renderAll(); updateHUD();
+/* v3.5 转生后自动快速推进到历史最高层，不需要等待 */
+setTimeout(()=>{
+if(state.allTimeMax>state.curFloor){
+try { quickAdvance(state.allTimeMax); } catch(e){ console.log('自动推进错误:',e); }
+}
+},100);
+});
+}
+/* v3.3 快速推进：自动战斗到指定层数（高战力玩家友好） */
+function quickAdvance(targetFloor){
+if(targetFloor<=state.curFloor){ toast('目标层数必须大于当前层'); return; }
+if(targetFloor>state.allTimeMax){ toast('只能推进到历史最高层（第 '+state.allTimeMax+' 层）'); return; }
+// 批量计算从当前层到目标层的奖励
+let totalGold=0,totalExp=0;
+for(let f=state.curFloor;f<targetFloor;f++){
+totalGold+=monsterGold(f)*goldMult();
+totalExp+=monsterExp(f);
+}
+state.gold=capGold(state.gold+totalGold);
+state.totalGold=capGold(state.totalGold+totalGold);
+// 经验和等级
+gainExp(totalExp);
+state.curFloor=targetFloor;
+state.maxFloor=Math.max(state.maxFloor,targetFloor);
+state.allTimeMax=Math.max(state.allTimeMax,targetFloor);
+fightReset();
+save(); renderAll(); updateHUD(); checkAchievements();
+toast('快速推进成功！获得金币 +'+fmt(totalGold)+'、经验 +'+fmt(totalExp));
+}
+function fightReset(){
+const mode=state.inDungeon?(state.dungeonMode||'pill'):'none';
+if(mode==='trial'){
+if(state.trialFloor<1) state.trialFloor=1;
+fight.mhp=trialMonsterHp(state.trialFloor);
+fight.monName='you·试炼者·'+state.trialFloor;
+}else if(state.inDungeon){
+let fl=(mode==='skill'?state.skillFloor:(mode==='pet'?state.petFloor:state.dungeonFloor));
+if(fl<1) fl=1;
+if(mode==='skill') state.skillFloor=fl; else if(mode==='pet') state.petFloor=fl; else state.dungeonFloor=fl;
+fight.mhp=dungeonMonsterHp(fl);
+fight.monName='深渊守卫·'+fl;
+}else{
+fight.mhp=monsterHp(state.curFloor);
+fight.monName=monsterName(state.curFloor);
+}
+fight.php=maxHp();
+fight.atkCd=0; fight.monCd=0; fight.stuck=false; fight.skillCd=SKILL_CD;
+fight.isElite=false; fight.bossRage=false;
+setMsg('战斗重新开始','ok');
+}
+function enterDungeon(mode){ // mode: pill / skill / pet / trial
+if(mode==='trial'){
+if(!trialEnterable()){ toast('需任一无尽塔通关 50 层才能进入试炼'); return; }
+state.inDungeon=true; state.dungeonMode='trial';
+if(state.trialFloor<1) state.trialFloor=1;
+}else{
+if(!dungeonEnterable()){ toast('需 10 点转生之力才能进入副本'); return; }
+state.inDungeon=true; state.dungeonMode=mode;
+}
+fightReset(); updateBattle(); updateHUD();
+toast(mode==='trial'?'已进入副本「来自you的试炼」':(mode==='skill'?'已进入「无尽塔-技能」':(mode==='pet'?'已进入「无尽塔-宠物」':'已进入「无尽塔-丹药」')));
+}
+function exitDungeon(){
+state.inDungeon=false; state.dungeonMode='pill';
+fightReset(); updateBattle(); updateHUD();
+toast('已退出副本，回到主塔');
+}
+/* 服用丹药/结晶：mode=pill|skill|pet */
+function takeOne(mode){
+let max,taken,cost;
+if(mode==='skill'){ max=skillMaxTaken(); taken=state.skillTaken; cost=skillNextCost(); if(state.skillPills<cost){ toast('技能结晶不足，需要 '+cost+' 颗'); return; } state.skillPills-=cost; state.skillTaken++; }
+else if(mode==='pet'){ max=petMaxTaken(); taken=state.petTaken; cost=petNextCost(); if(state.petPills<cost){ toast('宠物结晶不足，需要 '+cost+' 颗'); return; } state.petPills-=cost; state.petTaken++; }
+else { max=pillMaxTaken(); taken=state.pillTaken; cost=pillNextCost(); if(state.pills<cost){ toast('丹药不足，需要 '+cost+' 颗'); return; } state.pills-=cost; state.pillTaken++; }
+if(taken>=max){ toast('已达服用上限（转生之力×10）'); return; }
+save(); renderDungeon(); updateHUD();
+toast(((mode==='skill')?'服用技能结晶成功，技能伤害 +1.05%':((mode==='pet')?'服用宠物结晶成功，全属性 +1.05%':'服用丹药成功，攻击 +1.05%'))+'（已服用 '+(mode==='skill'?state.skillTaken:(mode==='pet'?state.petTaken:state.pillTaken))+' / '+max+' 颗）');
+}
+/* 丹药消耗公式：从 taken 开始服用 n 颗的总消耗（每服用10次 cost+1），O(1) 数学计算避免大循环卡顿 */
+function pillsNeeded(taken,n){
+if(n<=0) return 0;
+const q=Math.floor(taken/10), r=taken%10;
+const k1=Math.min(n,10-r); // 先补齐到下一档
+let cost=k1*(q+1);
+const rest=n-k1;
+if(rest>0){
+const full=Math.floor(rest/10), rem=rest%10;
+cost+=full*10*((q+2)+(q+1+full))/2; // 等差求和：档位 q+2 … q+1+full，每档 10 颗
+cost+=rem*(q+1+full+1);
+}
+return Math.min(cost, MAX_GOLD); // v3.7.1 数值保护，避免 Infinity 导致崩溃
+}
+function maxTakeable(mode,pills){
+const max=(mode==='skill'?skillMaxTaken():(mode==='pet'?petMaxTaken():pillMaxTaken()));
+const taken=(mode==='skill'?state.skillTaken:(mode==='pet'?state.petTaken:state.pillTaken));
+let lo=0, hi=max-taken, best=0;
+while(lo<=hi){
+const mid=Math.floor((lo+hi)/2);
+if(pillsNeeded(taken,mid)<=pills){ best=mid; lo=mid+1; } else hi=mid-1;
+}
+return best;
+}
+function takeAll(mode){
+const max=(mode==='skill'?skillMaxTaken():(mode==='pet'?petMaxTaken():pillMaxTaken()));
+const taken=(mode==='skill'?state.skillTaken:(mode==='pet'?state.petTaken:state.pillTaken));
+const pills=(mode==='skill'?state.skillPills:(mode==='pet'?state.petPills:state.pills));
+const n=maxTakeable(mode,pills);
+if(n===0){
+if(taken>=max) toast('已达服用上限（'+max+' 颗）');
+else toast(((mode==='skill')?'技能结晶':((mode==='pet')?'宠物结晶':'丹药'))+'不足，无法服用');
+return;
+}
+const cost=Math.min(pillsNeeded(taken,n), pills); // v3.7.1 保护：消耗不超过持有量
+if(mode==='skill'){ state.skillPills=Math.max(0,state.skillPills-cost); state.skillTaken+=n; }
+else if(mode==='pet'){ state.petPills=Math.max(0,state.petPills-cost); state.petTaken+=n; }
+else { state.pills=Math.max(0,state.pills-cost); state.pillTaken+=n; }
+save(); renderDungeon(); updateHUD();
+toast('一键吃满：服用 '+n+' 颗'+(mode==='skill'?'技能结晶（技能伤害 +'+(n*1.05).toFixed(2)+'%）':(mode==='pet'?'宠物结晶（全属性 +'+(n*1.05).toFixed(2)+'%）':'丹药（攻击 +'+(n*1.05).toFixed(2)+'%）'))+'（已服用 '+(taken+n)+' / '+max+' 颗）');
+}
+function towerSweep(mode,cardN){ // 扫荡指定塔，cardN=0 免费冷却扫荡，>0 用扫荡卡
+const cd=3600*1000;
+let floorKey, maxKey, outKey, totalKey, name, unit;
+if(mode==='skill'){ floorKey='skillFloor'; maxKey='skillMax'; outKey='skillPills'; totalKey='skillTaken'; name='无尽塔-技能'; unit='技能结晶'; }
+else if(mode==='pet'){ floorKey='petFloor'; maxKey='petMax'; outKey='petPills'; totalKey='petTaken'; name='无尽塔-宠物'; unit='宠物结晶'; }
+else { floorKey='dungeonFloor'; maxKey='dungeonMax'; outKey='pills'; totalKey='pillTaken'; name='无尽塔-丹药'; unit='丹药'; }
+const lastKey='last'+(mode==='skill'?'Skill':(mode==='pet'?'Pet':'Dungeon'))+'Sweep';
+if(cardN<=0){
+const wait=state[lastKey]+cd-Date.now();
+if(wait>0){ toast('扫荡冷却中，还需 '+fmtTime(wait)+'（可用无尽塔扫荡卡立即扫荡）'); return; }
+}
+if(state[maxKey]<1){ toast('至少通关 '+name+' 第 1 层后才能扫荡'); return; }
+const times=cardN>0?cardN:1;
+let g=0;
+if(mode==='skill') g=sweepTotal(state.skillMax);
+else if(mode==='pet') g=sweepTotal(state.petMax);
+else g=pillSweepTotal();
+state[outKey]+=g*times;
+state[lastKey]=Date.now();
+save(); renderDungeon(); updateHUD();
+toast(cardN>0?('使用 '+cardN+' 张无尽塔扫荡卡，'+name+' 扫荡获得 '+fmt(g*times)+' 颗'+unit):('扫荡成功！'+name+' 从第 1 层到第 '+state[maxKey]+' 层累计获得 '+fmt(g)+' 颗'+unit));
+}
+function dungeonSweep(){ towerSweep(state.inDungeon?(state.dungeonMode||'pill'):'pill',0); }
+function useSweepCard(){
+if(state.sweepCards<1){ toast('无尽塔扫荡卡不足'); return; }
+const mode=state.inDungeon?(state.dungeonMode||'pill'):'pill';
+if(mode==='trial'){ toast('试炼副本无法扫荡'); return; }
+state.sweepCards--;
+towerSweep(mode,1);
+}
+function useSweepCardAll(){ // 一键全部使用：对当前塔立即获得 N 次扫荡收益
+if(state.sweepCards<1){ toast('无尽塔扫荡卡不足'); return; }
+const mode=state.inDungeon?(state.dungeonMode||'pill'):'pill';
+if(mode==='trial'){ toast('试炼副本无法扫荡'); return; }
+const n=state.sweepCards;
+state.sweepCards=0;
+towerSweep(mode,n);
+}
+function save(){
+state.lastSeen=Date.now();
+/* v3.0 保存前修复所有Infinity/NaN值，防止存档崩溃 */
+['gold','totalGold','exp','expNext','rebirthPoints','storedRebirth','tradePoints',
+ 'pills','skillPills','petPills','pillTaken','skillTaken','petTaken',
+ 'titleCount','slackerCount','almostCount','youTitle','medalCount','baseScrolls','baseScrollsUsed',
+ 'wildDogMilk','signResetCards','sweepCards','trialResetScrolls','totalGiftsOpened',
+ 'bossKills','totalEquips','signTotal','dailyTasksDone','eventsTriggered','eliteKills','rageKills',
+ 'killsToday','dungeonKillsToday','dungeonFloor','skillFloor','petFloor','trialFloor',
+ 'dungeonMax','skillMax','petMax','trialMax','allTimeMax','maxFloor','curFloor','level'].forEach(k=>{
+  if(typeof state[k]==='number'&&(!isFinite(state[k])||isNaN(state[k]))) state[k]=0;
+});
+state.gold=capGold(state.gold); state.totalGold=capGold(state.totalGold);
+state.titleCount=capTitle(state.titleCount); state.slackerCount=capTitle(state.slackerCount); state.almostCount=capTitle(state.almostCount);
+try{ localStorage.setItem(SAVE_KEY,JSON.stringify(state)); }catch(e){}
+}
+function load(){
+try{
+const raw=localStorage.getItem(SAVE_KEY);
+if(!raw) return;
+const d=JSON.parse(raw);
+const def=defaultState();
+state=Object.assign(def,d);
+state.saveVer=8;
+state.skills=Object.assign(def.skills,d.skills||{});
+state.equip=Object.assign(def.equip,d.equip||{});
+state.equipLv=Object.assign({weapon:0,armor:0,charm:0,ring:0,helm:0},d.equipLv||{});
+['weapon','armor','charm','ring','helm'].forEach(p=>{ const it=state.equip[p]; if(it&&it.lv) state.equipLv[p]=Math.max(state.equipLv[p]||0,it.lv); });
+state.achievements=Array.isArray(d.achievements)?d.achievements:[];
+if(typeof state.speed!=='number'||state.speed<1) state.speed=1;
+}catch(e){ console.warn('存档读取失败',e); }
+}
+function resetGame(){
+myConfirm('确定重置游戏吗？所有进度将丢失。',ok=>{
+if(!ok) return;
+try{ localStorage.removeItem(SAVE_KEY); }catch(e){}
+state=defaultState(); fightReset();
+renderAll(); updateHUD(); toast('已重置，新的冒险开始');
+});
+}
+function offlineEarn(){
+const elapsed=Math.min(Date.now()-state.lastSeen,OFFLINE_CAP);
+if(elapsed<30*1000) return 0;
+return estGoldPerSec()*elapsed/1000*0.5;
+}
+function handleOffline(){
+const earn=offlineEarn();
+if(earn<=0){ state.lastSeen=Date.now(); return; }
+const elapsed=Math.min(Date.now()-state.lastSeen,OFFLINE_CAP);
+document.getElementById('offlineTime').textContent=fmtTime(elapsed);
+document.getElementById('offlineEarn').textContent='+'+fmt(earn);
+document.getElementById('offlineModal').classList.add('show');
+document.getElementById('offlineCollect').onclick=()=>{
+state.gold=capGold(state.gold+earn); state.totalGold=capGold(state.totalGold+earn);
+state.lastSeen=Date.now();
+document.getElementById('offlineModal').classList.remove('show');
+updateHUD(); checkAchievements(); save();
+toast('离线收益已入账');
+};
+}
+/* ============ 成就 ============ */
+function checkAchievements(){
+let newOnes=[];
+ACHIEVEMENTS.forEach(a=>{
+if(state.achievements.indexOf(a.id)===-1&&a.check(state)){
+state.achievements.push(a.id); newOnes.push(a.name);
+}
+});
+if(newOnes.length){
+renderAch(); renderAttrs(); updateHUD();
+newOnes.forEach(n=>toast('成就达成：'+n+'（全属性 +10%）'));
+save();
+}
+/* v3.5 检查新称号获取 */
+checkNewTitles();
+}
+/* ============ 渲染 ============ */
+function updateHUD(){
+document.getElementById('hudFloor').textContent=state.curFloor;
+document.getElementById('hudGold').textContent=fmt(state.gold)+' ◆';
+document.getElementById('hudLevel').textContent=state.level;
+document.getElementById('hudDps').textContent=fmt(dps());
+document.querySelectorAll('.buy-btn').forEach(btn=>{
+btn.disabled=state.gold<parseFloat(btn.dataset.cost);
+});
+// 实时刷新转生按钮可用状态（maxFloor 变化时同步）
+const rb=document.getElementById('rebirthBtn');
+if(rb) rb.disabled=rebirthGain()<1;
+}
+function updateBattle(){
+const mode=state.inDungeon?(state.dungeonMode||'pill'):'none';
+const isTrial=mode==='trial';
+const isDun=mode!=='none';
+const f=isTrial?state.trialFloor:(mode==='skill'?state.skillFloor:(mode==='pet'?state.petFloor:(isDun?state.dungeonFloor:state.curFloor)));
+const isBoss=!isDun&&state.curFloor%10===0;
+const isElite=!isDun&&fight.isElite;
+const raging=!isDun&&fight.bossRage;
+document.getElementById('floorNum').textContent=isTrial?('试炼 · '+f):(mode==='skill'?('技能塔 · '+f):(mode==='pet'?('宠物塔 · '+f):(isDun?('丹药塔 · '+f):f)));
+document.getElementById('bossTag').textContent=isBoss?(raging?'BOSS·狂暴':'BOSS'):(isElite?'精英':(isTrial?'·礼包':(isDun?'·结晶':'')));
+document.getElementById('playerNameEl').textContent=state.playerName||'勇者';
+document.getElementById('monName').textContent=fight.monName;
+document.getElementById('monName').className='name'+(isBoss?' boss':'')+(isElite?' elite':'')+(raging?' raging':'');
+const ma=document.getElementById('monAvatar');
+ma.textContent=fight.monName.charAt(0);
+ma.className='avatar'+(isBoss?' mon-boss':'')+(isElite?' mon-elite':'')+(raging?' mon-raging':'');
+// 血条（精英怪3倍血量）
+const pRatio=Math.max(0,fight.php/maxHp()*100);
+let mhpMax=isTrial?trialMonsterHp(f):(isDun?dungeonMonsterHp(f):monsterHp(state.curFloor));
+if(isElite) mhpMax*=3;
+const mRatio=Math.max(0,fight.mhp/mhpMax*100);
+const pFill=document.getElementById('playerHpFill');
+pFill.style.width=pRatio+'%';
+pFill.className='hp-fill'+(isBoss?' boss':'');
+const mFill=document.getElementById('monHpFill');
+mFill.style.width=mRatio+'%';
+mFill.className='hp-fill'+(isBoss?' boss':'')+(isElite?' elite':'')+(raging?' raging':'');
+document.getElementById('playerHpText').textContent=Math.max(0,Math.round(fight.php))+' / '+Math.round(maxHp());
+document.getElementById('monHpText').textContent=Math.max(0,Math.round(fight.mhp))+' / '+mhpMax;
+}
+function renderAttrs(){
+const box=document.getElementById('tab-attrs');
+box.innerHTML=''
++'<button class="big-btn" id="oneUpBtn" style="margin-bottom:8px">⚡ 一键升级</button>'
++'<div style="font-size:11px;color:var(--muted);margin-bottom:8px">属性已取消加点，随等级自动成长（攻击 +2/级、生命 +25/级、防御 +0.5/级）。一键升级会用金币自动连买可升级的技能。战胜无尽塔每 50 层额外 +100% 基础属性（独立乘区）</div>'
++'<div class="stat-row"><div class="label">等级</div><div class="val">'+state.level+'</div></div>'
++'<div class="stat-row"><div class="label">攻击 <span style="color:var(--muted);font-size:11px">10+等级×2</span></div><div class="val">'+fmt(atk())+'</div></div>'
++'<div class="stat-row"><div class="label">生命 <span style="color:var(--muted);font-size:11px">100+等级×25</span></div><div class="val">'+fmt(maxHp())+'</div></div>'
++'<div class="stat-row"><div class="label">防御 <span style="color:var(--muted);font-size:11px">等级×0.5</span></div><div class="val">'+fmt(defVal())+'</div></div>'
++'<div class="stat-row"><div class="label">暴击率</div><div class="val">'+Math.round(critChance()*100)+'%</div></div>'
++'<div class="stat-row"><div class="label">经验</div><div class="val">'+fmt(state.exp)+' / '+fmt(state.expNext)+'</div></div>'
++(state.abyssLordCount>0?'<div class="stat-row"><div class="label">🌋 深渊领主加成</div><div class="val" style="color:var(--purple)">全属性+全收益 +'+(state.abyssLordCount*5)+'%（×'+abyssLordMult().toFixed(2)+'）</div></div>':'')
++((state.abyssAttr&&(state.abyssAttr.atk>0||state.abyssAttr.hp>0||state.abyssAttr.def>0))?'<div class="stat-row"><div class="label">🌋 深渊专属属性</div><div class="val" style="font-size:11px">攻击+'+state.abyssAttr.atk+' 生命+'+state.abyssAttr.hp+' 防御+'+state.abyssAttr.def+'</div></div>':'');
+document.getElementById('oneUpBtn').onclick=oneClickUpgrade;
+}
+function oneClickUpgrade(){
+let spent=0, upgraded=false;
+while(true){
+let best=null, bestCost=Infinity;
+SKILLS.forEach(s=>{ const c=skillCost(s); if(c<bestCost){ bestCost=c; best=s; } });
+if(!best||state.gold<bestCost) break;
+state.gold-=bestCost; state.skills[best.id]++; spent+=bestCost; upgraded=true;
+}
+renderAll(); updateHUD();
+toast(upgraded?'一键升级完成：消耗 '+fmt(spent)+' 金币升级技能':'金币不足，暂时无法升级');
+}
+function renderSkills(){
+const box=document.getElementById('tab-skills');
+box.innerHTML='';
+SKILLS.forEach(s=>{
+const lv=state.skills[s.id],cost=skillCost(s);
+const maxed=skillMaxed(s);
+const card=document.createElement('div'); card.className='card';
+card.innerHTML='<div class="info"><div class="name">'+s.name+' <span class="lvl">Lv.'+lv+(maxed?' (满级)':'')+'</span></div><div class="desc">'+s.desc+'</div></div>';
+const btn=document.createElement('button');
+btn.className='buy-btn'; btn.dataset.cost=cost;
+if(maxed){
+btn.innerHTML='已满级';
+btn.disabled=true;
+}else{
+btn.innerHTML='升级<div class="cost">'+fmt(cost)+' ◆</div>';
+btn.disabled=state.gold<cost;
+btn.onclick=()=>{
+if(state.gold<cost) return;
+state.gold-=cost; state.skills[s.id]++;
+renderSkills(); updateHUD();
+};
+}
+card.appendChild(btn); box.appendChild(card);
+});
+}
+function renderEquip(){
+const box=document.getElementById('tab-equip');
+box.innerHTML='';
+['weapon','armor','charm','ring','helm'].forEach(p=>{
+const it=state.equip[p];
+const row=document.createElement('div'); row.className='equip-slot';
+if(it){
+row.innerHTML='<div style="flex:1;min-width:0"><div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><span style="color:var(--muted)">'+partName(p)+'</span>　<span class="eq-name '+QUALITY[it.q].cls+'">'+it.full+'</span></div><div style="color:var(--gold);font-weight:700;font-size:11px">'+itemDesc(it)+'</div></div>';
+}else{
+row.innerHTML='<div><span style="color:var(--muted)">'+partName(p)+'</span></div><div style="color:var(--muted)">未装备</div>';
+}
+box.appendChild(row);
+});
+box.innerHTML+='<div style="font-size:11px;color:var(--muted);margin-top:6px">普通层概率掉落 · BOSS 必掉 · 比当前部位更好的装备自动穿戴，不如当前的直接丢弃（不再进入背包）· 神话 / 至尊品质仅在更深处掉落</div>';
+}
+/* v3.3 背包存储/取出函数 */
+const STORABLE_ITEMS=[
+/* v3.5 只保留稀有道具，移除丹药等一键吞服的 */
+{key:'trialResetScrolls',name:'副本重置卷',stateKey:'trialResetScrolls'},
+{key:'signResetCards',name:'签到重置卡',stateKey:'signResetCards'},
+{key:'sweepCards',name:'无尽塔扫荡卡',stateKey:'sweepCards'},
+{key:'speedrunTickets',name:'速通券',stateKey:'speedrunTickets'},
+{key:'trialCoins',name:'试炼币',stateKey:'trialCoins'},
+{key:'wildDogMilk',name:'野生狗奶',stateKey:'wildDogMilk'},
+{key:'expPotions',name:'经验药水',stateKey:'expPotions'},
+{key:'goldBags',name:'金币福袋',stateKey:'goldBags'},
+{key:'rebirthChests',name:'转生之力宝箱',stateKey:'rebirthChests'},
+{key:'statPotions',name:'属性药水',stateKey:'statPotions'},
+];
+function storeItem(key,ratio){
+const item=STORABLE_ITEMS.find(i=>i.key===key);
+if(!item) return;
+const available=state[item.stateKey]||0;
+if(available<1){ toast(item.name+'不足'); return; }
+let amount;
+if(ratio==='all') amount=available;
+else amount=Math.floor(available/ratio);
+if(amount<1){ toast('数量太少，无法存储'); return; }
+state[item.stateKey]-=amount;
+if(!state.storedItems) state.storedItems={};
+state.storedItems[key]=(state.storedItems[key]||0)+amount;
+save(); renderBackpack();
+toast('已存储 '+item.name+' ×'+amount);
+}
+function withdrawItem(key,ratio){
+const item=STORABLE_ITEMS.find(i=>i.key===key);
+if(!item) return;
+if(!state.storedItems) state.storedItems={};
+const stored=state.storedItems[key]||0;
+if(stored<1){ toast(item.name+'存储量不足'); return; }
+let amount;
+if(ratio==='all') amount=stored;
+else amount=Math.floor(stored/ratio);
+if(amount<1){ toast('数量太少，无法取出'); return; }
+state.storedItems[key]-=amount;
+state[item.stateKey]=(state[item.stateKey]||0)+amount;
+save(); renderBackpack();
+toast('已取出 '+item.name+' ×'+amount);
+}
+/* ============ v3.4 新道具使用 ============ */
+function useExpPotion(n){
+n=n||1;
+if(state.expPotions<n){ toast('经验药水不足'); return; }
+state.expPotions-=n;
+// 每瓶获得当前等级升级所需经验的5倍
+const expGain=state.expNext*5*n;
+gainExp(expGain);
+save(); renderBackpack(); updateHUD();
+toast('使用经验药水 ×'+n+'，获得经验 +'+fmt(expGain));
+}
+function useGoldBag(n){
+n=n||1;
+if(state.goldBags<n){ toast('金币福袋不足'); return; }
+state.goldBags-=n;
+// 每袋获得当前层金币收益的100倍
+const goldGain=monsterGold(state.curFloor)*100*n*goldMult();
+state.gold=capGold(state.gold+goldGain);
+state.totalGold=capGold(state.totalGold+goldGain);
+save(); renderBackpack(); updateHUD();
+toast('使用金币福袋 ×'+n+'，获得金币 +'+fmt(goldGain));
+}
+function useRebirthChest(n){
+n=n||1;
+if(state.rebirthChests<n){ toast('转生之力宝箱不足'); return; }
+state.rebirthChests-=n;
+state.rebirthPoints+=5*n;
+save(); renderBackpack(); renderShop(); updateHUD();
+toast('使用转生之力宝箱 ×'+n+'，获得转生之力 +'+(5*n));
+}
+function useStatPotion(n){
+n=n||1;
+if(state.statPotions<n){ toast('属性药水不足'); return; }
+state.statPotions-=n;
+if(!state.boughtAttr) state.boughtAttr={atk:0,hp:0,def:0};
+state.boughtAttr.atk+=10*n;
+state.boughtAttr.hp+=5*n;
+state.boughtAttr.def+=5*n;
+save(); renderBackpack(); renderAttrs(); updateHUD();
+toast('使用属性药水 ×'+n+'，永久 +攻击'+(10*n)+' +生命'+(50*n)+' +防御'+(5*n));
+}
+/* ============ v3.4 新礼包 ============ */
+function buyNewGift(type,n){
+n=n||1;
+const prices={starter:50,luxury:500,supreme:2000,daily:100,mystery:300};
+const cost=prices[type]*n;
+if(!cost||state.tradePoints<cost){ toast('交易点不足，需要 '+cost); return; }
+// 每日特惠检查
+if(type==='daily'){
+const today=new Date().toISOString().slice(0,10);
+if(state.dailyGiftClaimed===today){ toast('今日特惠已领取，明天再来'); return; }
+state.dailyGiftClaimed=today;
+}
+state.tradePoints-=cost;
+let msg='';
+if(type==='starter'){
+state.expPotions+=3*n; state.goldBags+=3*n; state.rebirthChests+=2*n;
+msg='新手成长礼包 ×'+n+'：经验药水+'+(3*n)+'、金币福袋+'+(3*n)+'、转生之力宝箱+'+(2*n);
+}else if(type==='luxury'){
+state.expPotions+=10*n; state.goldBags+=10*n; state.rebirthChests+=10*n; state.statPotions+=5*n; state.titleCount=capTitle(state.titleCount+10*n);
+msg='豪华进阶礼包 ×'+n+'：经验药水+'+(10*n)+'、金币福袋+'+(10*n)+'、转生之力宝箱+'+(10*n)+'、属性药水+'+(5*n)+'、山河共主+'+(10*n);
+}else if(type==='supreme'){
+state.expPotions+=30*n; state.goldBags+=30*n; state.rebirthChests+=30*n; state.statPotions+=20*n; state.titleCount=capTitle(state.titleCount+50*n); state.slackerCount=capTitle(state.slackerCount+10*n);
+msg='至尊大礼包 ×'+n+'：经验药水+'+(30*n)+'、金币福袋+'+(30*n)+'、转生之力宝箱+'+(30*n)+'、属性药水+'+(20*n)+'、山河共主+'+(50*n)+'、摸鱼达人+'+(10*n);
+}else if(type==='daily'){
+state.expPotions+=5; state.goldBags+=5; state.rebirthChests+=3;
+// 随机称号
+if(Math.random()<0.5){ state.titleCount=capTitle(state.titleCount+5); msg+='、山河共主×5'; }
+else { state.slackerCount=capTitle(state.slackerCount+1); msg+='、摸鱼达人×1'; }
+msg='每日特惠礼包：经验药水×5、金币福袋×5、转生之力宝箱×3'+msg;
+}else if(type==='mystery'){
+// 神秘宝箱：随机获得稀有道具（批量时用概率近似）
+let results={rebirthChests:0,statPotions:0,expPotions:0,goldBags:0,titleCount:0,slackerCount:0,abyssLordCount:0,trialCoins:0,speedrunTickets:0,tradePoints:0};
+for(let i=0;i<n;i++){
+const r=Math.random();
+if(r<0.05) results.abyssLordCount+=1; // v3.7 5%概率出深渊领主（最强称号）
+else if(r<0.12) results.rebirthChests+=10;
+else if(r<0.22) results.statPotions+=10;
+else if(r<0.37) results.expPotions+=20;
+else if(r<0.52) results.goldBags+=20;
+else if(r<0.67) results.titleCount+=20;
+else if(r<0.77) results.slackerCount+=3;
+else if(r<0.87) results.trialCoins+=500;
+else if(r<0.94) results.speedrunTickets+=5;
+else results.tradePoints+=200;
+}
+state.rebirthChests+=results.rebirthChests;
+state.statPotions+=results.statPotions;
+state.expPotions+=results.expPotions;
+state.goldBags+=results.goldBags;
+state.titleCount=capTitle(state.titleCount+results.titleCount);
+state.slackerCount=capTitle(state.slackerCount+results.slackerCount);
+state.abyssLordCount=capTitle(state.abyssLordCount+results.abyssLordCount);
+state.trialCoins=(state.trialCoins||0)+results.trialCoins;
+state.speedrunTickets=(state.speedrunTickets||0)+results.speedrunTickets;
+state.tradePoints+=results.tradePoints;
+msg='神秘宝箱 ×'+n+'已开启'+(results.abyssLordCount>0?'，获得「深渊领主」×'+results.abyssLordCount+'！':'');
+}
+save(); renderShop(); renderBackpack(); updateHUD();
+toast(msg);
+}
+function renderBackpack(){ // 道具总览：显示所有道具数量，可直接使用部分道具，所有道具均可存储/取出
+const box=document.getElementById('tab-backpack');
+const stored=state.storedRebirth||0;
+if(!state.storedItems) state.storedItems={};
+// 生成可存储道具的HTML
+let storableHtml='';
+STORABLE_ITEMS.forEach(item=>{
+const available=state[item.stateKey]||0;
+const storedAmt=state.storedItems[item.key]||0;
+storableHtml+='<div class="stat-row"><div class="label">'+item.name+' <span style="color:var(--muted);font-size:11px">可用×'+fmt(available)+' 存储×'+fmt(storedAmt)+'</span></div>'
++'<div class="btns"><button class="ghost-btn" id="store_'+item.key+'">存入全部</button></div></div>'
++'<div class="stat-row" style="margin-top:-6px;padding-top:4px;border-top:none"><div class="label" style="font-size:11px;color:var(--muted)">取出</div>'
++'<div class="btns">'
++'<button class="ghost-btn" id="wd_'+item.key+'_10" style="padding:5px 8px;font-size:11px">1/10</button>'
++'<button class="ghost-btn" id="wd_'+item.key+'_5" style="padding:5px 8px;font-size:11px">1/5</button>'
++'<button class="ghost-btn" id="wd_'+item.key+'_3" style="padding:5px 8px;font-size:11px">1/3</button>'
++'<button class="ghost-btn" id="wd_'+item.key+'_2" style="padding:5px 8px;font-size:11px">1/2</button>'
++'<button class="ghost-btn" id="wd_'+item.key+'_all" style="padding:5px 8px;font-size:11px">全部</button>'
++'</div></div>';
+});
+box.innerHTML=''
++'<div style="font-size:12px;color:var(--muted);margin-bottom:8px">道具总览 · 所有道具均可存入背包（不影响使用效果，仅减少可用数量）</div>'
++'<div class="stat-row"><div class="label">💎 金币</div><div class="val">'+fmt(state.gold)+'</div></div>'
++'<div class="stat-row"><div class="label">⚡ 转生之力（可用）</div><div class="val">'+fmt(state.rebirthPoints)+' 点</div></div>'
++'<div class="stat-row"><div class="label">📦 转生之力（背包存储）</div><div class="val">'+fmt(stored)+' 点</div></div>'
++'<div class="stat-row"><div class="label">存入转生之力</div><div class="btns"><button class="ghost-btn" id="store10">1/10</button><button class="ghost-btn" id="store5">1/5</button><button class="ghost-btn" id="store3">1/3</button><button class="ghost-btn" id="store2">1/2</button><button class="ghost-btn" id="storeAll">全部</button></div></div>'
++'<div class="stat-row"><div class="label">取出转生之力</div><div class="btns"><button class="ghost-btn" id="wd10">1/10</button><button class="ghost-btn" id="wd5">1/5</button><button class="ghost-btn" id="wd3">1/3</button><button class="ghost-btn" id="wd2">1/2</button><button class="ghost-btn" id="wd10fixed">取10</button><button class="ghost-btn" id="wdAll">全部</button></div></div>'
++'<div class="stat-row"><div class="label">🪙 交易点</div><div class="val">'+fmt(state.tradePoints)+'</div></div>'
++'<div class="stat-row"><div class="label">👑 山河共主</div><div class="val">× '+fmt(state.titleCount)+'</div></div>'
++'<div class="stat-row"><div class="label">🐟 摸鱼达人</div><div class="val">× '+fmt(state.slackerCount)+'</div></div>'
++'<div class="stat-row"><div class="label">🌋 深渊领主</div><div class="val" style="color:var(--purple)">× '+fmt(state.abyssLordCount)+'（全属性+全收益 +'+(state.abyssLordCount*5)+'%）</div></div>'
++'<div class="stat-row"><div class="label">🪙 深渊币</div><div class="val" style="color:var(--purple)">'+fmt(state.abyssCoins)+' 枚（深渊塔最高 '+state.abyssMax+' 层）</div></div>'
++'<div class="stat-row"><div class="label">🎲 差一点就得到了</div><div class="val">× '+fmt(state.almostCount)+'（全属性 +'+Math.round((almostMult()-1)*100)+'%）</div></div>'
++'<div class="stat-row"><div class="label">🌀 you勋章</div><div class="val">× '+fmt(state.medalCount)+'（收益 ×'+medalMult().toFixed(1)+'）</div></div>'
++'<div class="stat-row"><div class="label">💜 you认可</div><div class="val">× '+fmt(state.youTitle)+'（试炼收益 ×'+trialGiftMult()+'）</div></div>'
++'<div class="stat-row"><div class="label">📜 基础单</div><div class="btns"><button class="ghost-btn" id="useScrollBtn">用1张</button><button class="ghost-btn" id="useScrollAll">全部使用</button><div class="val">'+fmt(state.baseScrolls)+' 张（已用 '+fmt(state.baseScrollsUsed)+'）</div></div></div>'
++'<div class="stat-row"><div class="label">🔄 副本重置卷</div><div class="btns"><button class="ghost-btn" id="useTrialScrollBtn">用1张</button><button class="ghost-btn" id="useTrialScrollAll">全部使用</button><div class="val">'+fmt(state.trialResetScrolls||0)+' 张</div></div></div>'
++'<div class="stat-row"><div class="label">🔖 签到重置卡</div><div class="btns"><button class="ghost-btn" id="bpSign1">用1张</button><button class="ghost-btn" id="bpSignAll">全部使用</button><div class="val">'+fmt(state.signResetCards)+' 张</div></div></div>'
++'<div class="stat-row"><div class="label">⏳ 无尽塔扫荡卡</div><div class="btns"><button class="ghost-btn" id="bpSweep1">用1张</button><button class="ghost-btn" id="bpSweepAll">全部扫荡</button><div class="val">'+fmt(state.sweepCards)+' 张</div></div></div>'
++'<div class="stat-row"><div class="label">💊 丹药</div><div class="val">'+fmt(state.pills)+' 颗（已服 '+fmt(state.pillTaken)+'，攻击 +'+(state.pillTaken*1.05).toFixed(2)+'%）</div></div>'
++'<div class="stat-row"><div class="label">🔮 技能结晶</div><div class="btns"><button class="ghost-btn" id="bpTakeSkill">服用</button><button class="ghost-btn" id="bpTakeSkillAll">一键吃满</button><div class="val">'+fmt(state.skillPills)+' 颗（已服 '+fmt(state.skillTaken)+'）</div></div></div>'
++'<div class="stat-row"><div class="label">🐾 宠物结晶</div><div class="btns"><button class="ghost-btn" id="bpTakePet">服用</button><button class="ghost-btn" id="bpTakePetAll">一键吃满</button><div class="val">'+fmt(state.petPills)+' 颗（已服 '+fmt(state.petTaken)+'）</div></div></div>'
+/* v3.4 新道具 */
++'<div class="stat-row"><div class="label">🧪 经验药水</div><div class="btns"><button class="ghost-btn" id="useExpPotion1">用×1</button><button class="ghost-btn" id="useExpPotion10">用×10</button><button class="ghost-btn" id="useExpPotionAll">全部</button><div class="val">'+fmt(state.expPotions)+' 瓶</div></div></div>'
++'<div class="stat-row"><div class="label">💰 金币福袋</div><div class="btns"><button class="ghost-btn" id="useGoldBag1">用×1</button><button class="ghost-btn" id="useGoldBag10">用×10</button><button class="ghost-btn" id="useGoldBagAll">全部</button><div class="val">'+fmt(state.goldBags)+' 个</div></div></div>'
++'<div class="stat-row"><div class="label">📦 转生之力宝箱</div><div class="btns"><button class="ghost-btn" id="useRebirthChest1">用×1</button><button class="ghost-btn" id="useRebirthChest10">用×10</button><button class="ghost-btn" id="useRebirthChestAll">全部</button><div class="val">'+fmt(state.rebirthChests)+' 个</div></div></div>'
++'<div class="stat-row"><div class="label">⚗️ 属性药水</div><div class="btns"><button class="ghost-btn" id="useStatPotion1">用×1</button><button class="ghost-btn" id="useStatPotion10">用×10</button><button class="ghost-btn" id="useStatPotionAll">全部</button><div class="val">'+fmt(state.statPotions)+' 瓶</div></div></div>'
++'<div style="border-top:1px solid var(--border);margin:12px 0;padding-top:10px"><b style="color:var(--cyan)">📦 道具存储</b> <span style="color:var(--muted);font-size:11px">所有道具均可存入/取出，存入不影响效果</span></div>'
++storableHtml
++'<div class="stat-row"><div class="label">🎁 已开 you神秘礼包</div><div class="val">'+fmt(state.totalGiftsOpened)+' 个</div></div>'
++'<div class="stat-row"><div class="label">🏆 成就</div><div class="val">'+state.achievements.length+' / '+ACHIEVEMENTS.length+'（全属性 +'+Math.round((achievementMult()-1)*100)+'%）</div></div>'
++'<div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.7">装备不再进入背包：比当前部位更好的装备掉落时自动穿戴，不如当前的直接丢弃（不提示）。<br>「基础单」：使用 1 张，全属性额外乘区 +10%（永久，独立乘区）。<br>「野生狗奶」：不可使用，自动生效，每个使装备提供的数值翻倍。<br>「副本重置卷」：将试炼副本增加的属性恢复到初始值。<br>「背包存储转生之力」：存入的转生之力仍提供战力/获取加成，但不可用于兑换交易点。</div>';
+const useScroll=document.getElementById('useScrollBtn'); if(useScroll) useScroll.onclick=useBaseScroll;
+const uts=document.getElementById('useTrialScrollBtn'); if(uts) uts.onclick=useTrialResetScroll;
+const s10=document.getElementById('store10'); if(s10) s10.onclick=()=>storeRebirth(0.1);
+const s5=document.getElementById('store5'); if(s5) s5.onclick=()=>storeRebirth(0.2);
+const s3=document.getElementById('store3'); if(s3) s3.onclick=()=>storeRebirth(1/3);
+const s2=document.getElementById('store2'); if(s2) s2.onclick=()=>storeRebirth(0.5);
+const sAll=document.getElementById('storeAll'); if(sAll) sAll.onclick=()=>storeRebirth(1);
+const w10=document.getElementById('wd10'); if(w10) w10.onclick=()=>withdrawRebirth(0.1);
+const w5=document.getElementById('wd5'); if(w5) w5.onclick=()=>withdrawRebirth(0.2);
+const w3=document.getElementById('wd3'); if(w3) w3.onclick=()=>withdrawRebirth(1/3);
+const w2=document.getElementById('wd2'); if(w2) w2.onclick=()=>withdrawRebirth(0.5);
+const wAll=document.getElementById('wdAll'); if(wAll) wAll.onclick=()=>withdrawRebirth(1);
+const s1=document.getElementById('bpSign1'); if(s1) s1.onclick=()=>useSignCard(1);
+const sa=document.getElementById('bpSignAll'); if(sa) sa.onclick=useSignCardAll;
+const w1=document.getElementById('bpSweep1'); if(w1) w1.onclick=()=>{ const m=(state.inDungeon&&state.dungeonMode!=='trial')?state.dungeonMode:'pill'; if(state.sweepCards<1){toast('无尽塔扫荡卡不足');return;} state.sweepCards--; towerSweep(m,1); };
+const wa=document.getElementById('bpSweepAll'); if(wa) wa.onclick=()=>{ const m=(state.inDungeon&&state.dungeonMode!=='trial')?state.dungeonMode:'pill'; if(state.sweepCards<1){toast('无尽塔扫荡卡不足');return;} const n=state.sweepCards; state.sweepCards=0; towerSweep(m,n); };
+const tsk=document.getElementById('bpTakeSkill'); if(tsk) tsk.onclick=()=>takeOne('skill');
+const tska=document.getElementById('bpTakeSkillAll'); if(tska) tska.onclick=()=>takeAll('skill');
+const tpt=document.getElementById('bpTakePet'); if(tpt) tpt.onclick=()=>takeOne('pet');
+const tpta=document.getElementById('bpTakePetAll'); if(tpta) tpta.onclick=()=>takeAll('pet');
+/* v3.4 新道具使用按钮 */
+const uep1=document.getElementById('useExpPotion1'); if(uep1) uep1.onclick=()=>useExpPotion(1);
+const uep10=document.getElementById('useExpPotion10'); if(uep10) uep10.onclick=()=>useExpPotion(10);
+const ugb1=document.getElementById('useGoldBag1'); if(ugb1) ugb1.onclick=()=>useGoldBag(1);
+const ugb10=document.getElementById('useGoldBag10'); if(ugb10) ugb10.onclick=()=>useGoldBag(10);
+const urc1=document.getElementById('useRebirthChest1'); if(urc1) urc1.onclick=()=>useRebirthChest(1);
+const urc10=document.getElementById('useRebirthChest10'); if(urc10) urc10.onclick=()=>useRebirthChest(10);
+const usp1=document.getElementById('useStatPotion1'); if(usp1) usp1.onclick=()=>useStatPotion(1);
+const usp10=document.getElementById('useStatPotion10'); if(usp10) usp10.onclick=()=>useStatPotion(10);
+/* v3.7.7 新增全部使用按钮 */
+const usa=document.getElementById('useScrollAll'); if(usa) usa.onclick=()=>useBaseScroll(state.baseScrolls);
+const utsa=document.getElementById('useTrialScrollAll'); if(utsa) utsa.onclick=()=>useTrialResetScroll(state.trialResetScrolls||0);
+const uepa=document.getElementById('useExpPotionAll'); if(uepa) uepa.onclick=()=>useExpPotion(state.expPotions);
+const ugba=document.getElementById('useGoldBagAll'); if(ugba) ugba.onclick=()=>useGoldBag(state.goldBags);
+const urca=document.getElementById('useRebirthChestAll'); if(urca) urca.onclick=()=>useRebirthChest(state.rebirthChests);
+const uspa=document.getElementById('useStatPotionAll'); if(uspa) uspa.onclick=()=>useStatPotion(state.statPotions);
+const w10f=document.getElementById('wd10fixed'); if(w10f) w10f.onclick=()=>withdrawRebirth(-10); // v3.7.7 取10个
+/* v3.3 道具存储/取出按钮绑定 */
+STORABLE_ITEMS.forEach(item=>{
+const sb=document.getElementById('store_'+item.key); if(sb) sb.onclick=()=>storeItem(item.key,'all');
+const w10=document.getElementById('wd_'+item.key+'_10'); if(w10) w10.onclick=()=>withdrawItem(item.key,10);
+const w5=document.getElementById('wd_'+item.key+'_5'); if(w5) w5.onclick=()=>withdrawItem(item.key,5);
+const w3=document.getElementById('wd_'+item.key+'_3'); if(w3) w3.onclick=()=>withdrawItem(item.key,3);
+const w2=document.getElementById('wd_'+item.key+'_2'); if(w2) w2.onclick=()=>withdrawItem(item.key,2);
+const wall=document.getElementById('wd_'+item.key+'_all'); if(wall) wall.onclick=()=>withdrawItem(item.key,'all');
+});
+}
+function useBaseScroll(n){ // v3.7.7 支持数量参数，n=1使用1张，n>=持有量时全部使用
+if(!n) n=1;
+if(state.baseScrolls<1){ toast('没有基础单'); return; }
+n=Math.min(n, state.baseScrolls);
+state.baseScrolls-=n; state.baseScrollsUsed+=n;
+save(); renderBackpack(); updateHUD(); renderAttrs();
+toast('使用基础单 ×'+n+'：全属性额外乘区 +'+(n*10)+'%（当前 ×'+baseScrollMult().toFixed(2)+'）');
+}
+/* 背包存储/取出转生之力：仅可选 1/10、1/5、1/3、1/2、全部。存入的转生之力仍提供战力/获取加成，但不可用于兑换交易点 */
+function storeRebirth(frac){
+const avail=state.rebirthPoints;
+if(avail<1){ toast('没有可存入的转生之力'); return; }
+const n=frac>=1?avail:Math.max(1,Math.floor(avail*frac));
+if(n>avail){ toast('转生之力不足'); return; }
+state.rebirthPoints-=n; state.storedRebirth=(state.storedRebirth||0)+n;
+save(); renderBackpack(); renderShop(); updateHUD();
+toast('已存入 '+n+' 点转生之力到背包（仍提供战力/获取加成，但不可兑换交易点）');
+}
+function withdrawRebirth(frac){
+const stored=state.storedRebirth||0;
+if(stored<1){ toast('背包中没有转生之力'); return; }
+let n;
+if(frac<0){ n=Math.min(Math.abs(frac), stored); } // v3.7.7 负数表示固定数量
+else if(frac>=1){ n=stored; }
+else { n=Math.max(1,Math.floor(stored*frac)); }
+if(n>stored){ toast('背包中转生之力不足'); return; }
+state.storedRebirth-=n; state.rebirthPoints+=n;
+save(); renderBackpack(); renderShop(); updateHUD();
+toast('已从背包取出 '+n+' 点转生之力（可用于兑换交易点）');
+}
+function openTrialGift(){ // 开 1 个 you的神秘礼包：1%副本重置卷 / 9.9%勋章 / 79.2%基础单 / 9.9%you认可
+const r=Math.random();
+if(r<0.01) state.trialResetScrolls=(state.trialResetScrolls||0)+1;
+else if(r<0.109) state.medalCount=capTitle(state.medalCount+1);
+else if(r<0.901) state.baseScrolls=capTitle(state.baseScrolls+1);
+else state.youTitle=capTitle(state.youTitle+1);
+}
+/* v3.7.8 批量开礼包：使用概率统计+随机扰动，避免大量循环导致卡顿 */
+function batchOpenTrialGift(n){
+if(n<=0) return;
+if(n<=200){ for(let i=0;i<n;i++) openTrialGift(); return; } // 小数量直接循环
+// 大数量使用近似计算+随机扰动
+const resetScrolls=Math.floor(n*0.01+Math.random()*Math.sqrt(n*0.01*0.99));
+const medals=Math.floor(n*0.099+Math.random()*Math.sqrt(n*0.099*0.901));
+const baseScrolls=Math.floor(n*0.792+Math.random()*Math.sqrt(n*0.792*0.208));
+const youTitles=n-resetScrolls-medals-baseScrolls;
+state.trialResetScrolls=(state.trialResetScrolls||0)+Math.max(0,resetScrolls);
+state.medalCount=capTitle(state.medalCount+Math.max(0,medals));
+state.baseScrolls=capTitle(state.baseScrolls+Math.max(0,baseScrolls));
+state.youTitle=capTitle(state.youTitle+Math.max(0,youTitles));
+}
+function resetTrial(){ // 重置试炼：当前层回到第1层，基础属性翻倍（更难但奖励不变）
+state.trialResetCount=(state.trialResetCount||0)+1;
+state.trialFloor=1;
+if(state.inDungeon&&state.dungeonMode==='trial') fightReset();
+save(); renderDungeon(); updateHUD();
+toast('试炼已重置！当前基础属性 ×'+trialResetMult().toFixed(0)+'（第 '+state.trialResetCount+' 次重置）');
+}
+function useTrialResetScroll(n){ // v3.7.7 支持数量参数
+if(!n) n=1;
+if((state.trialResetScrolls||0)<1){ toast('副本重置卷不足'); return; }
+n=Math.min(n, state.trialResetScrolls||0);
+state.trialResetScrolls-=n;
+state.trialResetCount=0;
+state.trialFloor=1;
+if(state.inDungeon&&state.dungeonMode==='trial') fightReset();
+save(); renderDungeon(); updateHUD();
+toast('已使用副本重置卷 ×'+n+'，试炼属性恢复初始值');
+}
+function renderRebirth(){
+const box=document.getElementById('tab-rebirth');
+const gainRaw=rebirthGain();
+const gain=rebirthGainActual();
+const need=Math.max(0,20-state.maxFloor);
+box.innerHTML=''
++'<div class="stat-row"><div class="label">当前转生次数</div><div class="val">'+state.totalRebirths+' 次</div></div>'
++'<div class="stat-row"><div class="label">转生之力</div><div class="val">'+state.rebirthPoints+' 点</div></div>'
++'<div class="stat-row"><div class="label">每点战力加成</div><div class="val" style="font-size:11px">攻击 / 生命 / 防御 +10%</div></div>'
++'<div class="stat-row"><div class="label">每点获取加成</div><div class="val" style="font-size:11px">金币 / 经验 / 装备掉率 +5%</div></div>'
++'<div class="stat-row"><div class="label">本轮最高层</div><div class="val">'+state.maxFloor+' 层</div></div>'
++'<div class="stat-row"><div class="label">转生可获得</div><div class="val">'+gain+' 点</div></div>'
++(state.slackerCount>0?'<div class="stat-row"><div class="label">摸鱼达人加成</div><div class="val">×'+slackerMult().toFixed(1)+'</div></div>':'')
++'<div class="stat-row"><div class="label">转生后战力加成</div><div class="val">+'+(state.rebirthPoints+gain)*10+'%</div></div>'
++'<button class="big-btn" id="rebirthBtn">'+(gain>=1?'转生（等级保留 40%，获得永久加成）':'转生（需到达 20 层）')+'</button>'
++'<div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.7">'
++(gainRaw>=1?'当前可转生，转生将获得 <span style="color:var(--gold)">'+gain+'</span> 点转生之力。':'还差 <span style="color:var(--gold)">'+need+'</span> 层到达 20 层。每到达 20 层 = 1 点转生之力（40 层 = 2 点，依此类推）。')
++'<br>每点转生之力：攻击 / 生命 / 防御 <b style="color:var(--gold)">+10%</b>，金币 / 经验 / 装备掉率 <b style="color:var(--gold)">+5%</b>；也可在商城兑换交易点（1:10，不可逆）。'
++'<br>「摸鱼达人」称号：转生之力获取 ×(1+数量)。'
++'<br>转生重置：层数 / 金币 / 经验，等级保留 40%（最少 1 级）。'
++'<br>转生保留：装备 / 技能 / 成就 / 丹药 / 副本「无尽塔」进度 / 历史最高层记录。</div>';
+const btn=document.getElementById('rebirthBtn');
+btn.disabled=gainRaw<1;
+btn.onclick=doRebirth;
+}
+function renderAch(){
+const box=document.getElementById('tab-ach');
+const got=state.achievements.length;
+box.innerHTML='<div style="font-size:12px;color:var(--muted);margin-bottom:8px">已解锁 '+got+' / '+ACHIEVEMENTS.length+'</div>';
+ACHIEVEMENTS.forEach(a=>{
+const done=state.achievements.indexOf(a.id)!==-1;
+const el=document.createElement('div');
+el.className='ach'+(done?' done':'');
+el.innerHTML='<div class="badge">'+(done?'★':'·')+'</div><div><div class="an" style="font-weight:700">'+a.name+'</div><div style="color:var(--muted);font-size:11px">'+a.desc+'</div></div>';
+box.appendChild(el);
+});
+}
+function renderSettings(){
+const box=document.getElementById('tab-settings');
+const farmMin=Math.max(1,state.curFloor-10);
+let farmOpts='';
+for(let f=farmMin;f<=state.curFloor;f++) farmOpts+='<option value="'+f+'"'+(f===state.curFloor?' selected':'')+'>第 '+f+' 层</option>';
+box.innerHTML=''
++'<div class="stat-row"><div class="label">战斗速率</div><div class="speed-group" id="speedGroup">'
++[1,2,4].map(v=>'<button class="speed-btn'+(state.speed===v?' active':'')+'" data-speed="'+v+'">'+v+'x</button>').join('')
++'</div></div>'
++'<div style="font-size:11px;color:var(--muted);margin-bottom:8px">最高 4 倍速，战斗 / 技能 / 收益结算同步加速</div>'
++'<div class="stat-row"><div class="label">挂机层</div><select class="farm-select" id="farmSel">'+farmOpts+'</select></div>'
++'<div style="font-size:11px;color:var(--muted);margin-bottom:8px">卡关时可退回前十层任意一层挂机刷金币经验，战力够了再推进</div>'
+/* v3.3 快速推进 */
++'<div class="stat-row"><div class="label">⚡ 快速推进 <span style="color:var(--muted);font-size:11px">直接跳到历史最高层</span></div><button class="ghost-btn" id="quickAdvanceBtn">推进到第 '+state.allTimeMax+' 层</button></div>'
++'<div style="font-size:11px;color:var(--muted);margin-bottom:8px">转生后一键回到历史最高层，自动获得途经所有金币和经验，不用慢慢打！</div>'
++'<div class="stat-row"><div class="label">自动存档</div><span style="color:var(--green);font-size:12px">已开启（15 秒/次）</span></div>'
++'<div class="stat-row"><div class="label">玩家名</div><input id="nameInput" class="farm-select" style="width:150px;max-width:100%" value="'+state.playerName+'"></div>'
++'<div style="font-size:11px;color:var(--muted);margin-bottom:8px">修改后回车 / 失焦保存，展示在战斗界面</div>'
++'<div class="stat-row"><div class="label">离线收益上限</div><span style="color:var(--muted);font-size:12px">8 小时</span></div>'
++'<div class="stat-row"><div class="label">信息显示</div><button class="ghost-btn" id="compactInfoBtn">'+(state.compactInfo?'切换为标准（信息面板较宽）':'切换为三分之一屏（信息仅占 1/3）')+'</button></div>'
++'<div style="font-size:11px;color:var(--muted);margin-bottom:8px">'+(state.compactInfo?'当前：信息面板仅占用屏幕约 1/3，战斗区域更宽':'当前：标准信息面板（340px）')+'</div>'
++'<div class="stat-row"><div class="label">⏸️ 战斗状态</div><button class="ghost-btn" id="pauseBtn" style="color:'+(state.paused?'var(--green)':'var(--gold)')+'">'+(state.paused?'▶️ 继续战斗':'⏸️ 暂停战斗')+'</button></div>'
++'<div class="stat-row"><div class="label">🎬 战斗动画</div><button class="ghost-btn" id="disableAnimBtn" style="color:'+(state.disableAnim?'var(--green)':'var(--gold)')+'">'+(state.disableAnim?'已禁用（省资源）':'已开启（有动画）')+'</button></div>'
++'<div style="font-size:11px;color:var(--muted);margin-bottom:8px">禁用动画后不显示伤害数字和攻击晃动，大幅减少CPU/GPU占用，试炼高层推荐开启。</div>'
++'<div class="stat-row"><div class="label">存档码（推荐）</div><button class="ghost-btn" id="genSaveCode">生成存档码</button></div>'
++'<textarea id="saveCodeBox" readonly placeholder="点击上方按钮生成存档码，全选复制后发送到另一台设备粘贴导入" style="width:100%;min-height:70px;max-height:160px;padding:8px;border-radius:8px;border:1px solid var(--border);background:rgba(0,0,0,.3);color:var(--cyan);font-size:11px;font-family:monospace;resize:vertical;margin-bottom:8px;word-break:break-all"></textarea>'
++'<div class="stat-row"><div class="label">复制存档码</div><button class="ghost-btn" id="copySaveCode">复制到剪贴板</button></div>'
++'<div class="stat-row"><div class="label">粘贴存档码导入</div><button class="ghost-btn" id="pasteImportBtn">粘贴并导入</button></div>'
++'<textarea id="importCodeBox" placeholder="在此粘贴存档码（IDLE: 开头）或老版本导出的 JSON 文本，然后点击上方按钮导入" style="width:100%;min-height:60px;max-height:120px;padding:8px;border-radius:8px;border:1px solid var(--border);background:rgba(0,0,0,.3);color:var(--text);font-size:11px;font-family:monospace;resize:vertical;margin-bottom:8px"></textarea>'
++'<div class="stat-row"><div class="label">下载存档文件</div><button class="ghost-btn" id="dlSave">下载 .json</button></div>'
++'<div class="stat-row"><div class="label">上传存档文件</div><button class="ghost-btn" id="loadSaveBtn">选择 .json 文件</button><input type="file" id="saveFile" accept=".json,application/json,.txt,text/plain" style="display:none"></div>'
++'<div style="font-size:11px;color:var(--muted);margin-bottom:8px;line-height:1.7">手机端推荐用「存档码」：生成后全选复制，通过微信/QQ发到另一台设备，粘贴导入即可。也支持直接粘贴老版本导出的 JSON 文本。文件下载保存在浏览器下载目录。</div>'
++'<div class="stat-row"><div class="label"><b style="color:var(--gold)">🎁 老玩家补偿</b> <span style="color:var(--muted);font-size:11px">根据转生次数和最高层发放</span></div>'
++(state.veteranClaimed
+?'<span style="color:var(--muted)">已领取</span>'
+:'<button class="ghost-btn" id="veteranBtn" style="color:var(--gold);border-color:var(--gold)">领取补偿</button>')
++'</div>'
++(state.veteranClaimed?'':'<div style="font-size:11px;color:var(--muted);margin-bottom:8px">可领取：'+veteranBonus().tp+' 交易点、'+veteranBonus().rp+' 转生之力'+(veteranBonus().title?'、专属称号「'+veteranBonus().title+'」':'')+'（转生≥10次解锁称号）</div>')
++'<div class="stat-row"><div class="label">重置游戏</div><button class="danger-btn" id="resetBtn">重置</button></div>'
++'<details class="log"><summary>更新日志</summary>'
++UPDATE_LOG.map(u=>'<div class="log-item"><b>'+u.ver+'</b> <span style="color:var(--muted);font-size:10px">'+u.date+'</span><div style="margin-top:2px">'+u.log+'</div></div>').join('')
++'</details>';
+document.querySelectorAll('#speedGroup .speed-btn').forEach(b=>{
+b.onclick=()=>{ state.speed=parseInt(b.dataset.speed); renderSettings(); toast('战斗速率已设为 '+state.speed+'x'); };
+});
+document.getElementById('farmSel').onchange=e=>{ selectFarmLayer(parseInt(e.target.value)); };
+/* v3.3 快速推进 */
+const qab=document.getElementById('quickAdvanceBtn'); if(qab) qab.onclick=()=>quickAdvance(state.allTimeMax);
+document.getElementById('genSaveCode').onclick=genSaveCode;
+document.getElementById('copySaveCode').onclick=copySaveCode;
+document.getElementById('pasteImportBtn').onclick=importFromCode;
+document.getElementById('dlSave').onclick=downloadSave;
+const nameEl=document.getElementById('nameInput');
+const saveName=()=>{ const v=nameEl.value.trim().slice(0,12); if(v&&v!==state.playerName){ state.playerName=v; save(); updateBattle(); toast('玩家名已修改为 '+v); } };
+nameEl.onchange=saveName; nameEl.onkeydown=e=>{ if(e.key==='Enter') nameEl.blur(); };
+document.getElementById('compactInfoBtn').onclick=()=>{
+state.compactInfo=!state.compactInfo;
+document.body.classList.toggle('compact-info',state.compactInfo);
+save(); renderSettings();
+toast(state.compactInfo?'已切换：信息面板仅占屏幕 1/3':'已切换：标准信息面板');
+};
+document.getElementById('loadSaveBtn').onclick=()=>{ document.getElementById('saveFile').click(); };
+document.getElementById('saveFile').onchange=e=>{
+const f=e.target.files[0]; if(f) importSave(f);
+e.target.value='';
+};
+document.getElementById('resetBtn').onclick=resetGame;
+/* v3.7.6 暂停战斗和禁用动画 */
+const pb=document.getElementById('pauseBtn'); if(pb) pb.onclick=()=>{ state.paused=!state.paused; save(); renderSettings(); toast(state.paused?'战斗已暂停':'战斗已继续'); };
+const dab=document.getElementById('disableAnimBtn'); if(dab) dab.onclick=()=>{ state.disableAnim=!state.disableAnim; save(); renderSettings(); toast(state.disableAnim?'战斗动画已禁用（省资源）':'战斗动画已开启'); };
+const vb=document.getElementById('veteranBtn'); if(vb) vb.onclick=claimVeteran;
+}
+function selectFarmLayer(l){
+if(l<1) l=1;
+state.curFloor=l;
+fightReset();
+renderAll(); updateHUD();
+toast('已切换到第 '+l+' 层挂机');
+}
+const UPDATE_LOG=[
+{ver:'v3.8.3',date:'2026-09-17',log:'超大数据（e39+）深度性能优化：主循环间隔100ms→150ms，战斗渲染300ms→400ms，HUD更新800ms→1200ms，成就检查5s→8s，自动存档30s→60s。fmt单位扩展到1e66，>1e48用科学计数法。所有Mult函数添加上限1e150保护。e39玩家现在应该流畅了！'},
+{ver:'v3.8.2',date:'2026-09-17',log:'修复深渊塔异常：上限1000层，承伤最高100%（避免高层伤害放大），属性数值保护。优化大量物品使用卡顿：经验药水连升只提示一次，限制升级循环次数。优化全部描述，更新日志更简洁。'},
+{ver:'v3.8.1',date:'2026-09-17',log:'大数值性能优化：tick属性缓存（攻击/生命/防御一次计算），存档频率30秒。高数值玩家流畅不卡顿。'},
+{ver:'v3.8.0',date:'2026-09-17',log:'you的试炼上限从100层大幅提升到1000层！新增2个试炼称号：500层解锁「时空主宰」+100%全属性，1000层解锁「you的终结者」+200%全属性（独立乘区，可叠加）。新增200/300/500/750/1000层里程碑奖励（试炼币+交易点）。试炼怪物属性计算添加数值保护（上限1e300），避免1000层溢出导致Infinity。高战力玩家现在有更多挑战空间！'},
+{ver:'v3.7.9',date:'2026-09-17',log:'称号上限提高10000倍（从1e15提升到1e19），山河共主/摸鱼达人等称号不再容易达到上限。修复战斗速率精度问题：之前tick每100ms执行一次，速率4x时攻击间隔是300ms而非理论250ms，现在将多余时间累积到下一次攻击，速率感知效果明显提升（4x速率下攻击间隔平均250ms）。优化游戏卡顿：updateBattle渲染频率从200ms调整为300ms，减少DOM操作。商店所有商品统一添加一键购买：回收山河共主/摸鱼达人新增全部回收，神秘宝箱新增×100和全部，深渊专属属性（攻击/生命/防御）新增×10和全部，深渊转生之力宝箱新增×100和全部，深渊无尽塔扫荡卡新增×100和全部。'},
+{ver:'v3.7.8',date:'2026-09-17',log:'彻底修复you的试炼卡顿异常：试炼击杀后和速通时开礼包的循环调用改为批量概率计算（batchOpenTrialGift），小数量（≤200）保持真实随机，大数量使用二项分布近似+随机扰动，彻底解决高层试炼因开礼包循环导致的卡顿。同时优化试炼伤害数字显示频率（每3次攻击显示1次）和禁用战斗动画选项，高层试炼推荐开启禁用动画以获得最佳性能。'},
+{ver:'v3.7.7',date:'2026-09-17',log:'所有可使用道具统一添加「使用1个」和「一键全部使用」按钮：基础单、副本重置卷、经验药水、金币福袋、转生之力宝箱、属性药水现在都支持全部使用。山河共主达上限后，一键签到会提示已达上限，不再自动批量签到（避免浪费签到次数）。取出转生之力新增「取10个」固定数量选项（除原有的1/10、1/5、1/3、1/2、全部比例外）。基础单和副本重置卷函数重构为支持数量参数。'},
+{ver:'v3.7.6',date:'2026-09-17',log:'新增暂停战斗功能：战斗界面左上角⏸️按钮或设置页可一键暂停/继续战斗。新增禁用战斗动画选项：设置页可开启，开启后不显示伤害数字和攻击晃动，大幅减少CPU/GPU占用，试炼高层推荐开启。优化you的试炼资源占用：试炼中每3次攻击才显示1次伤害数字，减少DOM操作和重排，高层战斗不再卡顿。修复天赋tab按钮data-tab不匹配（talent→talents），天赋页面现在可以正常打开。优化游戏响应速率：暂停时tick函数直接返回，不执行任何战斗逻辑，零资源占用。'},
+{ver:'v3.7.5',date:'2026-09-17',log:'修复游戏异常晃动：spawnDmg函数缓存战斗区域尺寸，避免每次攻击都调用getBoundingClientRect()触发强制重排（高速战斗时频繁重排是屏幕晃动的主因）；限制同时显示的伤害数字数量（最多20个），避免过多DOM元素导致页面重排；窗口大小变化时自动清除缓存。修复天赋tab页面无法打开的bug：HTML中天赋tab的ID是tab-talent（单数），但tab按钮的data-tab是talents（复数），导致ID不匹配、点击天赋标签无反应。已统一为tab-talents。'},
+{ver:'v3.7.4',date:'2026-09-17',log:'修复you的试炼（及所有副本）不吃速率加成的问题：之前击杀后硬编码ATK_INTERVAL*0.5冷却时间，稀释了速率的感知效果。现在所有副本（试炼/深渊塔/丹药塔/技能塔/宠物塔）和主塔击杀后冷却时间统一为ATK_INTERVAL，与普通攻击一致，战斗速率（1x/2x/4x及购买的永久速率）的加成效果现在在所有战斗模式中都明显生效。'},
+{ver:'v3.7.3',date:'2026-09-17',log:'新功能全面适配：属性面板新增深渊领主加成和深渊专属属性显示；背包新增深渊领主称号和深渊币显示；成就新增5个深渊塔相关成就（深渊初探/深渊行者/深渊之主/深渊领主/深渊富豪）；每日任务新增深渊探索任务（通关深渊塔3层）；称号收藏家成就计入深渊领主称号。所有新功能自动适配所有相关页面，无需手动提醒。'},
+{ver:'v3.7.2',date:'2026-09-17',log:'超值礼包和属性点支持一键购买：新手/豪华/至尊礼包新增×100/全部选项，属性点（攻击/生命/防御）新增×10/×100/全部选项。修复基础战斗屏幕异常晃动：移除setAttack中的强制重排（void offsetWidth），改用requestAnimationFrame重启动画，攻击动画幅度从±10px减小到±5px，高速战斗不再闪烁晃动。'},
+{ver:'v3.7.1',date:'2026-09-17',log:'修复一键服用过多丹药导致游戏崩溃：pillsNeeded计算添加数值保护（上限1e300），takeAll消耗不超过持有量，避免Infinity/NaN。修复you的试炼高层卡死：怪物固定减伤从最大生命10%改为不超过玩家攻击力50%，避免高层每次只掉1血。优化转生：转生次数≥100次后，转生后起始层数=最高层-100（比保留一半更友好）。'},
+{ver:'v3.7',date:'2026-09-17',log:'新称号「深渊领主」：神秘宝箱5%概率开出，或深渊塔用深渊币兑换（50币/个，支持×1/×10/×100/全部）。效果：每个+5%全属性+5%全收益（额外乘区，比摸鱼达人更强，与其他乘区独立计算）。新副本「深渊塔」：转生20次进入，怪物生命/攻击/防御=500/25/25，每层115%，特殊属性「承伤(1+层数×0.5)%」。奖励：深渊币=层数×2%（最小1）×摸鱼达人×you勋章×深渊领主。深渊币商店：兑换深渊领主称号、深渊专属永久属性（攻击+5/生命+50/防御+5，100币/项）、转生之力宝箱、无尽塔扫荡卡。深渊塔支持每小时扫荡1次，扫荡卡可立即扫荡（用1张/一键全部），转生不重置。性能优化：tab切换只渲染当前页面，大幅减少卡顿。PC端UI优化：更宽布局，tab换行显示不挤压。'},
+{ver:'v3.5',date:'2026-09-17',log:'大版本更新！转生后自动快速推进到历史最高层，不用再等。UI全面重做，更现代更好看。新增5个成就称号：百战不殆（战斗10000次，+15%全属性）、富甲一方（累计金币1e100，+20%金币获取）、登峰造极（到达1000层，+25%全属性）、转生大师（转生100次，+30%转生之力获取）、欧皇附体（开1000个礼包，+50%稀有掉落率）。新增BOSS挑战玩法：每天3次，挑战当前层10倍属性BOSS，战胜获得100倍金币+50倍经验+随机稀有道具。优化背包存储：只保留稀有道具（卡片/扫荡券/速通券/试炼币/野生狗奶/消耗道具），移除丹药等一键吞服道具的存储。'},
+{ver:'v3.4',date:'2026-09-17',log:'商店大更新！新增5种超值礼包：新手成长礼包(50点)、豪华进阶礼包(500点)、至尊大礼包(2000点)、每日特惠礼包(100点/天)、神秘宝箱(300点随机开出稀有道具)。新增4种消耗道具：经验药水(获得5倍升级经验)、金币福袋(获得100倍层金币)、转生之力宝箱(获得5点转生之力)、属性药水(永久+10攻+50血+5防)。所有新道具均可在背包中使用、可存入取出。'},
+{ver:'v3.3',date:'2026-09-17',log:'大量优化和bug修复！技能升级费用封顶（避免Infinity），满级显示"已满级"。天赋点获取量提升：前10次转生1点，10-50次2点，50次以上3点。新增快速推进功能：转生后一键回到历史最高层，自动获得途经所有金币和经验。装备属性成长率提升，后期装备更有价值。商城商品新增×1000批量购买选项。背包全道具存储/取出功能：丹药、技能结晶、宠物结晶、基础单、副本重置卷、签到重置卡、无尽塔扫荡卡、速通券、试炼币、野生狗奶均可存入/取出。'},
+{ver:'v3.2',date:'2026-09-17',log:'试炼大更新！上限从30层提高到100层，新增试炼币系统（每层获得，随层数递增）、每10层里程碑奖励（试炼币+交易点，30/50/100层解锁专属称号）。新增3个试炼称号：「试炼征服者」+10%全属性、「深渊行者」+20%、「you的化身」+50%（独立乘区，可叠加）。新增一键速通功能：消耗1张速通券，直接获得从当前层到目标层的全部奖励（高战力玩家不用等十多分钟！），初始赠送5张速通券。新增试炼币商店：可兑换速通券、丹药、技能结晶、宠物结晶、交易点、转生之力、副本重置卷。'},
+{ver:'v3.1.1',date:'2026-09-17',log:'彻底修复副本二级标签打不开：根因是innerHTML+=重建DOM导致onclick丢失。改用init中事件委托（一次绑定永久生效）+完整HTML一次性设置，丹药塔/技能塔/宠物塔/you试炼四个标签切换稳定。性能优化：钓鱼检查仅在钓鱼时执行。全面排查各系统bug，14项测试全部通过。'},
+{ver:'v3.1',date:'2026-09-17',log:'大版本玩法更新！新增竞技场（每日5次挑战，胜利获交易点+竞技场币，竞技场币可兑换丹药/称号/挑战次数）、钓鱼休闲系统（7种品质鱼，出售换交易点，神话级you的鱼价值2000点）。交易点新用法：购买永久属性点（攻击/生命/防御）、永久战斗速率+0.5x（上限+2x）、幸运符（下次事件必出好结果）、神秘抽卡（300点/次，可出各种奖励）。老玩家补偿礼包：根据转生次数和最高层发放交易点+转生之力，转生≥10次额外获得专属称号「远古守护者」。'},
+{ver:'v3.0.2',date:'2026-09-17',log:'称号上限从1e12提高到1e15；新增签到溢出补偿：称号达上限后，溢出部分按1:1转化为交易点（签到/一键签到均生效，有提示）；重构副本二级标签：使用事件委托+try-catch错误防护，丹药塔/技能塔/宠物塔/you试炼切换稳定不崩溃，某个塔渲染失败不影响其他标签；标签按钮加大点击区域。'},
+{ver:'v3.0.1',date:'2026-09-17',log:'全面修复数值溢出崩溃：金币上限1e300、称号上限1e12，所有获取点强制封顶，保存前自动修复Infinity/NaN；存档编码/解码添加polyfill兼容所有环境，解码时自动清理无效字符；修复精英怪血量/状态重置、祭坛经验计算、BOSS狂暴视觉等残留bug。'},
+{ver:'v3.0',date:'2026-09-17',log:'大版本更新！新增天赋系统（6个被动天赋，转生获得天赋点）、随机事件系统（宝箱/商人/祭坛/精英怪/生命之泉，每5层25%触发）、BOSS狂暴机制（血量低于30%攻击翻倍）、每日任务系统（每天3个随机任务，奖励交易点）。平衡性调整：转生战力加成10%→12%，攻击成长2→2.5/级，怪物HP增长1.14→1.12，攻击增长1.11→1.10，减少后期卡关。新增6个成就。'},
+{ver:'v2.5.1',date:'2026-09-15',log:'粘贴导入同时支持老版本导出的纯 JSON 和新版本存档码（IDLE: 开头）；存档自动兼容旧版本缺失字段。'},
+{ver:'v2.5',date:'2026-09-15',log:'新增存档码（base64 编码，可直接复制粘贴到另一台设备）；优化手机端存档导入导出；保留文件下载/上传作为备选。'},
+{ver:'v2.4',date:'2026-09-15',log:'优化大数额操作卡顿；签到重置卡/扫荡卡使用后自动签到/扫荡；装备掉落仅在穿戴时提示；试炼可重置（每次重置基础属性翻倍），新增副本重置卷恢复初始；you神秘礼包 1% 出重置卷；背包可存/取转生之力（1/10、1/5、1/3、1/2、全部，存入的仍加战力但不可兑换）；神秘礼包概率调整（摸鱼0.4%/山河4%/80TP1.5%/50TP2.5%/5转生3%/10TP7%/2-4TP81.6%）；欧皇礼包差一点最低80%、另两项最高100倍，新增野生狗奶（装备数值×数量）；更新日志精简。'},
+{ver:'v2.3',date:'2026-09-15',log:'修复 Infinity 显示；一键吃满不卡顿；一键签到；签到卡/扫荡卡单次+一键；取消排行榜；装备不进背包；新增15成就（共29，每个+10%全属性）；新增副本「来自you的试炼」；差一点每个+1%全属性；背包改道具总览；无尽塔分丹药/技能/宠物三塔+二级分区。'},
+{ver:'v2.2',date:'2026-09-15',log:'大数额开包不卡顿；新增差一点称号；欧皇礼包；取消装备强化；新增背包；签到重置卡/扫荡卡；排行榜（后取消）；可改玩家名。'},
+{ver:'v2.1',date:'2026-09-14',log:'装备强化改部位；商城一键买全部；转生50次保留半关卡；摸鱼达人加无尽塔掉落；设置可切1/3屏。'},
+{ver:'v2.0',date:'2026-09-14',log:'一键兑换转生之力；丹药一键吃满；每50层无尽塔+100%基础属性；新增戒指/头盔+神话/至尊品质；每日签到2次。'},
+{ver:'v1.9',date:'2026-09-13',log:'修复装备强化；商城批量购买×1/×10/×100。'},
+{ver:'v1.8',date:'2026-09-13',log:'扫荡发1层到最高层总和；一键兑换×10/×100；摸鱼达人加转生之力；装备强化；转生优化。'},
+{ver:'v1.7',date:'2026-09-13',log:'取消加点；副本按转生之力判定；商城系统；称号可回收；摸鱼达人效果。'},
+{ver:'v1.6',date:'2026-09-13',log:'新增无尽塔副本；丹药系统；每小时扫荡；转生不重置。'},
+{ver:'v1.5',date:'2026-09-13',log:'战斗速率4x；卡关退前十层挂机；山河共主称号；更新日志；存档下载/读取。'},
+{ver:'v1.3',date:'2026-09-13',log:'修复属性/转生/怪物回血；一键升级。'},
+{ver:'v1.0',date:'2026-09-13',log:'无尽爬塔初版：自动爬塔、BOSS、技能、装备、转生、成就、离线收益。'}
+];
+function encodeSave(){
+try{
+const json=JSON.stringify(state);
+const b64=window.btoa(unescape(encodeURIComponent(json)));
+return 'IDLE:'+b64;
+}catch(e){ return ''; }
+}
+function decodeSave(code){
+try{
+let s=code.trim();
+if(s.startsWith('IDLE:')){
+s=s.slice(5).replace(/\s+/g,'');
+let json=decodeURIComponent(escape(window.atob(s)));
+json=json.replace(/[\x00-\x1F]+$/,'').trim();
+return JSON.parse(json);
+}
+return JSON.parse(s);
+}catch(e){ return null; }
+}
+function genSaveCode(){
+const code=encodeSave();
+if(!code){ toast('生成存档码失败'); return; }
+document.getElementById('saveCodeBox').value=code;
+toast('存档码已生成（'+code.length+' 字符），全选复制后发送到另一台设备');
+}
+function copySaveCode(){
+const box=document.getElementById('saveCodeBox');
+if(!box.value){ toast('请先生成存档码'); return; }
+box.select(); box.setSelectionRange(0,999999);
+try{
+document.execCommand('copy');
+toast('存档码已复制到剪贴板');
+}catch(e){
+try{ navigator.clipboard.writeText(box.value); toast('存档码已复制到剪贴板'); }
+catch(e2){ toast('复制失败，请手动全选复制'); }
+}
+}
+function importFromCode(){
+const code=document.getElementById('importCodeBox').value.trim();
+if(!code){ toast('请先粘贴存档码或老版本 JSON'); return; }
+const d=decodeSave(code);
+if(!d||typeof d!=='object'){ toast('存档无效，请检查是否完整粘贴（支持存档码和老版本 JSON）'); return; }
+myConfirm('导入存档将覆盖当前进度，确定吗？',ok=>{
+if(!ok) return;
+applySaveData(d);
+toast('存档导入成功');
+});
+}
+function applySaveData(d){
+const def=defaultState();
+state=Object.assign(def,d);
+state.saveVer=8;
+state.skills=Object.assign(def.skills,d.skills||{});
+state.equip=Object.assign(def.equip,d.equip||{});
+state.equipLv=Object.assign({weapon:0,armor:0,charm:0,ring:0,helm:0},d.equipLv||{});
+['weapon','armor','charm','ring','helm'].forEach(p=>{ const it=state.equip[p]; if(it&&it.lv) state.equipLv[p]=Math.max(state.equipLv[p]||0,it.lv); });
+state.achievements=Array.isArray(d.achievements)?d.achievements:[];
+if(typeof state.speed!=='number'||state.speed<1) state.speed=1;
+/* v3.0 兼容：talentPoints 嵌套对象合并 */
+if(!state.talentPoints||typeof state.talentPoints!=='object'){ state.talentPoints={available:0,spent:0,talents:{warrior:0,guardian:0,wealth:0,scholar:0,crit:0,lucky:0}}; }
+else { state.talentPoints=Object.assign({available:0,spent:0,talents:{}},state.talentPoints); state.talentPoints.talents=Object.assign({warrior:0,guardian:0,wealth:0,scholar:0,crit:0,lucky:0},state.talentPoints.talents||{}); }
+if(typeof state.eventsTriggered!=='number') state.eventsTriggered=0;
+if(typeof state.eliteKills!=='number') state.eliteKills=0;
+if(typeof state.dailyTasksDone!=='number') state.dailyTasksDone=0;
+if(typeof state.rageKills!=='number') state.rageKills=0;
+if(typeof state.killsToday!=='number') state.killsToday=0;
+if(typeof state.dungeonKillsToday!=='number') state.dungeonKillsToday=0;
+save(); fightReset(); renderAll(); updateHUD();
+}
+function downloadSave(){
+try{
+const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
+const a=document.createElement('a');
+a.href=URL.createObjectURL(blob);
+a.download='无尽爬塔存档_'+Date.now()+'.json';
+document.body.appendChild(a); a.click(); a.remove();
+URL.revokeObjectURL(a.href);
+toast('存档已下载');
+}catch(e){ toast('下载失败'); }
+}
+function importSave(file){
+const reader=new FileReader();
+reader.onload=()=>{
+try{
+let text=reader.result.trim();
+let d=null;
+if(text.startsWith('IDLE:')||text.startsWith('IDLE%3A')){
+d=decodeSave(text);
+}else{
+d=JSON.parse(text);
+}
+if(!d||typeof d!=='object'||d===null) throw new Error('bad');
+myConfirm('导入存档将覆盖当前进度，确定吗？',ok=>{
+if(!ok) return;
+applySaveData(d);
+toast('存档读取成功');
+});
+}catch(e){ toast('存档文件无效'); }
+};
+reader.readAsText(file);
+}
+function todayStr(){ return new Date().toDateString(); }
+function signCap(){ return 2+(state.signExtra||0); } // 每日签到上限：基础 2 次 + 签到重置卡每 100 张 +1
+function signDaily(){
+const t=todayStr();
+if(state.lastSign!==t){ state.lastSign=t; state.signCount=0; }
+const cap=signCap();
+if(state.signCount>=cap){ toast('今天已签到 '+cap+' 次，明天再来'); return; }
+const gain=Math.floor((Math.floor(state.titleCount/5)+1)*slackerMult()*medalMult());
+const overflow=signOverflowCompensation(gain);
+state.titleCount=capTitle(state.titleCount+gain); state.signCount++; state.signTotal++;
+updateDailyProgress('sign',1);
+save();
+renderTitles(); updateHUD();
+toast('签到成功（今日第 '+state.signCount+' / '+cap+' 次）！获得 '+gain+' 个「山河共主」称号'+(overflow>0?'，溢出 '+overflow+' 个转化为 '+overflow+' 交易点':''));
+}
+function signDailyAll(){ // 一键签到：签到到今日上限
+const t=todayStr();
+if(state.lastSign!==t){ state.lastSign=t; state.signCount=0; }
+const cap=signCap();
+if(state.signCount>=cap){ toast('今日已签到 '+cap+' 次，明天再来'); return; }
+/* v3.7.7 山河共主满了之后不自动一键签到 */
+if(state.titleCount>=MAX_TITLE){ toast('「山河共主」已达上限（'+fmt(MAX_TITLE)+'），无法继续获取，建议手动签到1次查看溢出补偿'); return; }
+let n=0,total=0,totalOverflow=0;
+while(state.signCount<cap&&n<100){
+const gain=Math.floor((Math.floor(state.titleCount/5)+1)*slackerMult()*medalMult());
+const overflow=signOverflowCompensation(gain);
+totalOverflow+=overflow;
+state.titleCount=capTitle(state.titleCount+gain); state.signCount++; state.signTotal++; n++; total+=gain;
+}
+save(); renderTitles(); updateHUD();
+toast('一键签到 ×'+n+'：共获得 '+total+' 个「山河共主」称号'+(totalOverflow>0?'，溢出 '+totalOverflow+' 个转化为 '+totalOverflow+' 交易点':''));
+}
+function useSignCard(n){ // 签到重置卡：1张重置今日签到次数并自动签到；100张今日可签到次数+1
+if(state.signResetCards<n){ toast('签到重置卡不足'); return; }
+state.signResetCards-=n;
+if(n>=100){
+state.signExtra=(state.signExtra||0)+1;
+toast('已消耗 100 张签到重置卡，今日可签到次数 +1（当前上限 '+signCap()+' 次）');
+}else{
+const t=todayStr();
+if(state.lastSign!==t){ state.lastSign=t; state.signCount=0; }
+state.signCount=0;
+toast('已重置今日签到次数，自动签到中…');
+signDailyAll(); // 使用后自动签到
+return;
+}
+save(); renderTitles(); updateHUD();
+}
+function useSignCardAll(){ // 签到重置卡一键使用：先用完100张组提升上限，剩余重置今日次数并自动签到
+if(state.signResetCards<1){ toast('签到重置卡不足'); return; }
+const full=Math.floor(state.signResetCards/100);
+state.signResetCards-=full*100;
+state.signExtra+=full;
+let msg='已消耗 '+(full*100)+' 张签到重置卡，今日可签到次数 +'+full+'（当前上限 '+signCap()+' 次）';
+if(state.signResetCards>0){
+const t=todayStr();
+if(state.lastSign!==t){ state.lastSign=t; state.signCount=0; }
+state.signCount=0;
+state.signResetCards=0;
+msg+='；并用剩余卡重置了今日签到次数，自动签到中…';
+save(); renderTitles(); updateHUD();
+toast(msg);
+signDailyAll(); // 使用后自动签到
+return;
+}
+save(); renderTitles(); updateHUD();
+toast(msg);
+}
+function renderTitles(){
+const box=document.getElementById('tab-titles');
+const today=state.lastSign===todayStr();
+const signed=today?state.signCount:0;
+const todayGain=Math.floor((Math.floor(state.titleCount/5)+1)*slackerMult()*medalMult());
+const cap=signCap();
+box.innerHTML=''
++'<div class="stat-row"><div class="label"><span class="title-icon">👑</span> 山河共主</div><div class="val">× '+state.titleCount+'</div></div>'
++'<div class="stat-row"><div class="label"><span class="title-icon">🐟</span> 摸鱼达人</div><div class="val">× '+state.slackerCount+'</div></div>'
++'<div class="stat-row"><div class="label"><span class="title-icon">🌋</span> 深渊领主</div><div class="val" style="color:var(--purple,#b06bff)">× '+state.abyssLordCount+'</div></div>'
++'<div class="stat-row"><div class="label"><span class="title-icon">🎲</span> 差一点就得到了</div><div class="val" style="color:var(--purple,#b06bff)">× '+state.almostCount+'</div></div>'
+/* v3.5 新称号显示 */
++'<div style="border-top:1px solid var(--border);margin:10px 0;padding-top:8px"><b style="color:var(--gold);font-size:13px">🏆 成就称号</b> <span style="color:var(--muted);font-size:11px">通过游戏成就解锁</span></div>'
++'<div class="stat-row"><div class="label">⚔️ 百战不殆 <span style="color:var(--muted);font-size:11px">战斗10000次解锁</span></div><div class="val" style="color:'+(state.newTitles&&state.newTitles.warrior?'var(--green)':'var(--muted)')+'">'+(state.newTitles&&state.newTitles.warrior?'已解锁（+15%全属性）':'未解锁（'+Math.min(10000,state.battleCount||0)+'/10000）')+'</div></div>'
++'<div class="stat-row"><div class="label">💰 富甲一方 <span style="color:var(--muted);font-size:11px">累计金币1e100解锁</span></div><div class="val" style="color:'+(state.newTitles&&state.newTitles.rich?'var(--green)':'var(--muted)')+'">'+(state.newTitles&&state.newTitles.rich?'已解锁（+20%金币获取）':'未解锁')+'</div></div>'
++'<div class="stat-row"><div class="label">🏔️ 登峰造极 <span style="color:var(--muted);font-size:11px">到达1000层解锁</span></div><div class="val" style="color:'+(state.newTitles&&state.newTitles.peak?'var(--green)':'var(--muted)')+'">'+(state.newTitles&&state.newTitles.peak?'已解锁（+25%全属性）':'未解锁（'+Math.min(1000,state.allTimeMax)+'/1000）')+'</div></div>'
++'<div class="stat-row"><div class="label">🔄 转生大师 <span style="color:var(--muted);font-size:11px">转生100次解锁</span></div><div class="val" style="color:'+(state.newTitles&&state.newTitles.rebirthMaster?'var(--green)':'var(--muted)')+'">'+(state.newTitles&&state.newTitles.rebirthMaster?'已解锁（+30%转生之力获取）':'未解锁（'+Math.min(100,state.totalRebirths)+'/100）')+'</div></div>'
++'<div class="stat-row"><div class="label">🍀 欧皇附体 <span style="color:var(--muted);font-size:11px">开1000个礼包解锁</span></div><div class="val" style="color:'+(state.newTitles&&state.newTitles.luckyKing?'var(--green)':'var(--muted)')+'">'+(state.newTitles&&state.newTitles.luckyKing?'已解锁（+50%稀有掉落率）':'未解锁（'+Math.min(1000,state.totalGiftsOpened||0)+'/1000）')+'</div></div>'
++'<div class="stat-row"><div class="label">签到重置卡</div><div class="val" style="color:var(--cyan)">'+state.signResetCards+' 张</div></div>'
++'<div class="stat-row"><div class="label">使用签到重置卡</div><div class="btns"><button class="ghost-btn" id="useSign1">用1张·重置签到</button><button class="ghost-btn" id="useSign100">用100张·可签+1</button><button class="ghost-btn" id="useSignAll">一键全部使用</button></div></div>'
++'<div class="stat-row"><div class="label">山河共主效果</div><div class="val" style="font-size:11px">金币 & 经验 +10% / 个</div></div>'
++'<div class="stat-row"><div class="label">摸鱼达人效果</div><div class="val" style="font-size:11px">无尽塔三塔掉率/扫荡 / 签到 / 转生之力 ×(1+数量)</div></div>'
++'<div class="stat-row"><div class="label">深渊领主效果</div><div class="val" style="font-size:11px">全属性 + 全收益 +5% / 个（额外乘区，比摸鱼达人更强）</div></div>'
++'<div class="stat-row"><div class="label">差一点就得到了效果</div><div class="val" style="font-size:11px">每 100 个降欧皇礼包本称号概率 1/1000000；每个 +1% 全属性</div></div>'
++'<div class="stat-row"><div class="label">当前金币经验加成</div><div class="val">+'+(state.titleCount*10)+'%</div></div>'
++'<div class="stat-row"><div class="label">差一点全属性加成</div><div class="val">+'+Math.round((almostMult()-1)*100)+'%</div></div>'
++'<div class="stat-row"><div class="label">今日签到</div><div class="val">'+signed+' / '+cap+' 次（累计 '+state.signTotal+' 次）</div></div>'
++'<button class="big-btn" id="signBtn">'+(signed>=cap?'今日已签到 '+cap+' 次（明天再来）':'每日签到（今日 '+signed+' / '+cap+' 次）· 可得 '+todayGain+' 个')+'</button>'
++'<button class="ghost-btn" id="signAllBtn" style="width:100%;margin-top:4px">一键签到至今日上限</button>'
++'<div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.7">'
++'每日可签到 <b style="color:var(--gold)">'+cap+' 次</b>，每次获得「山河共主」。每累计 5 个，每日签到基础获取量 +1，再乘摸鱼达人（1+数量）与 you勋章（1+数量）倍率。'
++'<br>「签到重置卡」：用 1 张重置今日已签到次数；每用 100 张，今日可签到次数 +1；可一键全部使用。'
++'<br>「差一点就得到了」：从欧皇礼包获得，每 100 个降欧皇礼包抽到该称号概率 1/1000000；每个提供 <b style="color:var(--gold)">+1% 基础全属性</b>（独立乘区）。'
++'<br>「山河共主」：金币与经验收益 +10% / 个，永久叠加。'
++'<br>「摸鱼达人」：无尽塔（丹药/技能/宠物）掉落与扫荡 ×(1+数量)、每日签到获取量 ×(1+数量)、转生之力获取 ×(1+数量)。'
++'<br>「深渊领主」：从神秘宝箱或深渊塔兑换获得，每个提供 <b style="color:var(--purple)">+5% 全属性 +5% 全收益</b>（额外乘区，比摸鱼达人更强，与其他乘区独立计算）。'
++'<br>所有称号加成可叠加；称号也可在商城购买或回收。</div>';
+const btn=document.getElementById('signBtn');
+btn.disabled=signed>=cap;
+btn.onclick=signDaily;
+document.getElementById('signAllBtn').onclick=signDailyAll;
+document.getElementById('useSign1').onclick=()=>useSignCard(1);
+document.getElementById('useSign100').onclick=()=>useSignCard(100);
+document.getElementById('useSignAll').onclick=useSignCardAll;
+}
+function renderDungeon(){
+const view=state.dungeonView||'pill';
+const box=document.getElementById('tab-dungeon');
+// 二级标签HTML
+const tabsHtml='<div class="dungeon-tabs" style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">'
++['pill','skill','pet','trial','abyss'].map(m=>{ const nm=m==='pill'?'丹药塔':m==='skill'?'技能塔':m==='pet'?'宠物塔':m==='trial'?'you试炼':'深渊塔'; return '<button class="ghost-btn dungeon-tab-btn" data-mode="'+m+'" style="padding:8px 14px;font-size:13px;cursor:pointer;'+(view===m?'border-color:var(--cyan);color:var(--cyan);font-weight:700;background:rgba(91,208,255,.15)':'')+'">'+nm+'</button>'; }).join('')
++'</div>';
+// 内容HTML（try-catch防护）
+let contentHtml='';
+try{
+if(view!=='trial'&&view!=='abyss'){
+if(!dungeonEnterable()){
+contentHtml='<div class="stat-row"><div class="label">转生之力进度</div><div class="val">'+state.rebirthPoints+' / 10</div></div>'
++'<div style="font-size:11px;color:var(--muted);line-height:1.7">进入三个无尽塔均需 <b style="color:var(--fire)">10 点转生之力</b>（还差 '+Math.max(0,10-state.rebirthPoints)+' 点）。</div>';
+}else{
+contentHtml=towerBlockHTML(view);
+}
+}else if(view==='abyss'){
+contentHtml=abyssBlockHTML(abyssEnterable());
+}else{
+contentHtml=trialBlockHTML(trialEnterable());
+}
+}catch(e){
+contentHtml='<div style="color:var(--red);font-size:12px;padding:10px">副本内容渲染出错：'+e.message+'<br>请尝试切换其他标签或刷新页面。</div>';
+console.error('renderDungeon error:', e);
+}
+// 一次性设置完整HTML（不用innerHTML+=，避免DOM重建导致事件丢失）
+box.innerHTML=tabsHtml+contentHtml;
+// 绑定内容按钮（标签按钮已由init中的事件委托处理）
+try{
+if(view!=='trial'&&view!=='abyss'&&dungeonEnterable()){
+bindDungeonActions(view);
+const ex=document.getElementById('exitDunBtn'); if(ex) ex.onclick=exitDungeon;
+}else if(view==='abyss'){
+bindAbyssActions();
+const ex=document.getElementById('exitDunBtn'); if(ex) ex.onclick=exitDungeon;
+}else if(view==='trial'){
+bindDungeonActions(view);
+const ex=document.getElementById('exitDunBtn'); if(ex) ex.onclick=exitDungeon;
+}
+}catch(e){ console.error('bindDungeonActions error:', e); }
+}
+function towerBlockHTML(mode){
+const isSkill=mode==='skill', isPet=mode==='pet';
+const fk=isSkill?'skillFloor':isPet?'petFloor':'dungeonFloor';
+const mk=isSkill?'skillMax':isPet?'petMax':'dungeonMax';
+const ok=isSkill?'skillPills':isPet?'petPills':'pills';
+const tk=isSkill?'skillTaken':isPet?'petTaken':'pillTaken';
+const name=isSkill?'无尽塔-技能':isPet?'无尽塔-宠物':'无尽塔-丹药';
+const unit=isSkill?'技能结晶':isPet?'宠物结晶':'丹药';
+const eff=isSkill?'技能伤害':isPet?'全属性':'攻击';
+const lk='last'+(isSkill?'Skill':isPet?'Pet':'Dungeon')+'Sweep';
+const floor=Math.max(1,state[fk]), maxF=state[mk], out=state[ok], taken=state[tk];
+const maxT=isSkill?skillMaxTaken():isPet?petMaxTaken():pillMaxTaken();
+const nxt=isSkill?skillNextCost():isPet?petNextCost():pillNextCost();
+const wait=Math.max(0,state[lk]+3600*1000-Date.now());
+const sweepG=isSkill?skillSweepTotal():isPet?petSweepTotal():pillSweepTotal();
+const inThis=state.inDungeon&&state.dungeonMode===mode;
+return ''
++'<div class="stat-row"><div class="label"><span class="title-icon">🏯</span> '+name+'</div><div class="val" style="font-size:11px">'+state.rebirthPoints+' 转生之力</div></div>'
++'<div class="stat-row"><div class="label">当前层</div><div class="val">第 '+floor+' 层</div></div>'
++'<div class="stat-row"><div class="label">最高层</div><div class="val">第 '+maxF+' 层</div></div>'
++'<div class="stat-row"><div class="label">'+unit+'</div><div class="val" style="color:var(--green)">'+fmt(out)+' 颗</div></div>'
++'<div class="stat-row"><div class="label">'+eff+'加成</div><div class="val" style="color:var(--gold)">+'+(taken*1.05).toFixed(2)+'%</div></div>'
++'<div class="stat-row"><div class="label">服用进度</div><div class="val">'+fmt(taken)+' / '+fmt(maxT)+'</div></div>'
++(inThis?'<button class="big-btn" id="exitDunBtn" style="border-color:rgba(91,208,255,.5);color:var(--cyan)">退出副本，回到主塔</button>'
+:'<button class="big-btn" id="enterDunBtn-'+mode+'">'+(state[fk]<1?'进入副本（第 1 层）':'进入副本（第 '+floor+' 层）')+'</button>')
++'<div class="stat-row"><div class="label">服用'+unit+' <span style="color:var(--muted);font-size:11px">消耗 '+nxt+' 颗</span></div><div class="btns"><button class="ghost-btn" id="takeBtn-'+mode+'">服用</button><button class="ghost-btn" id="takeAllBtn-'+mode+'">一键吃满</button></div></div>'
++'<div class="stat-row"><div class="label">扫荡 <span style="color:var(--muted);font-size:11px">可得 '+fmt(sweepG)+' 颗</span></div><button class="ghost-btn" id="sweepBtn-'+mode+'">'+(wait>0?'冷却中 '+fmtTime(wait):'扫荡一次')+'</button></div>'
++'<div class="stat-row"><div class="label">无尽塔扫荡卡 <span style="color:var(--muted);font-size:11px">×'+state.sweepCards+'</span></div><div class="btns"><button class="ghost-btn" id="useSweepBtn-'+mode+'">用1张·立即扫荡</button><button class="ghost-btn" id="useSweepAllBtn-'+mode+'">一键全部扫荡</button></div></div>'
++'<div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.7">'
++'副本怪物：生命 / 攻击 / 防御 = 200 / 10 / 10，每层为上一层 <b style="color:var(--gold)">110%</b>，附特殊属性「承伤 (1+当前层数)%」。'
++'<br>每通关一层获得 <b style="color:var(--green)">'+unit+'</b> = 当前层数×1%（最小 1，向下取整）×摸鱼达人 ×you勋章。'
++'<br>每颗'+unit+' <b style="color:var(--gold)">'+eff+' +1.05%</b>，服用上限 = 转生之力×10；每服用 10 次，每次额外多消耗 1 颗；一键吃满使用数学公式计算，数额再大也不卡顿。'
++'<br>每小时可扫荡一次，扫荡发放第 1 层至最高层的'+unit+'总和；无尽塔扫荡卡可立即扫荡（用 1 张 / 一键全部）。转生不会重置副本进度。'
++'<br>每战胜 <b style="color:var(--fire)">50 层</b>，基础属性额外 <b style="color:var(--fire)">+100%</b>（独立乘区，转生不重置，当前 ×'+dungeonTowerMult().toFixed(0)+'）。'
++'<br>「摸鱼达人」「you勋章」对三个无尽塔的掉落与扫荡均生效（当前 ×'+slackerMult().toFixed(1)+' ×'+medalMult().toFixed(1)+'）。</div>';
+}
+/* ============ v3.7 深渊塔 ============ */
+function abyssBlockHTML(canEnter){
+if(!canEnter){
+return '<div class="stat-row"><div class="label">转生之力进度</div><div class="val">'+state.rebirthPoints+' / 20</div></div>'
++'<div style="font-size:11px;color:var(--muted);line-height:1.7">进入深渊塔需 <b style="color:var(--fire)">20 点转生之力</b>（还差 '+Math.max(0,20-state.rebirthPoints)+' 点）。</div>';
+}
+const floor=Math.max(1,state.abyssFloor), maxF=state.abyssMax;
+const wait=Math.max(0,state.lastAbyssSweep+3600*1000-Date.now());
+const sweepG=abyssSweepTotal();
+const inThis=state.inDungeon&&state.dungeonMode==='abyss';
+return ''
++'<div class="stat-row"><div class="label"><span class="title-icon">🌋</span> 深渊塔</div><div class="val" style="font-size:11px">'+state.rebirthPoints+' 转生之力</div></div>'
++'<div class="stat-row"><div class="label">当前层</div><div class="val">第 '+floor+' 层</div></div>'
++'<div class="stat-row"><div class="label">最高层</div><div class="val">第 '+maxF+' 层</div></div>'
++'<div class="stat-row"><div class="label">深渊币</div><div class="val" style="color:var(--purple)">'+fmt(state.abyssCoins)+' 枚</div></div>'
++(inThis?'<button class="big-btn" id="exitDunBtn" style="border-color:rgba(167,139,250,.5);color:var(--purple)">退出副本，回到主塔</button>'
+:'<button class="big-btn" id="enterAbyssBtn" style="background:linear-gradient(135deg,rgba(167,139,250,.2),rgba(248,113,113,.2));border-color:var(--purple)">'+(state.abyssFloor<1?'进入深渊塔（第 1 层）':'进入深渊塔（第 '+floor+' 层）')+'</button>')
++'<div class="stat-row"><div class="label">扫荡 <span style="color:var(--muted);font-size:11px">可得 '+fmt(sweepG)+' 深渊币</span></div><button class="ghost-btn" id="abyssSweepBtn">'+(wait>0?'冷却中 '+fmtTime(wait):'扫荡一次')+'</button></div>'
++'<div class="stat-row"><div class="label">无尽塔扫荡卡 <span style="color:var(--muted);font-size:11px">×'+state.sweepCards+'</span></div><div class="btns"><button class="ghost-btn" id="abyssUseSweepBtn">用1张·立即扫荡</button><button class="ghost-btn" id="abyssUseSweepAllBtn">一键全部扫荡</button></div></div>'
++'<div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.7">'
++'副本怪物：生命 / 攻击 / 防御 = 500 / 25 / 25，每层为上一层 <b style="color:var(--purple)">115%</b>，附特殊属性「承伤 (1+当前层数×0.5)%」。'
++'<br>每通关一层获得 <b style="color:var(--purple)">深渊币</b> = 当前层数×2%（最小 1，向下取整）×摸鱼达人 ×you勋章 ×深渊领主。'
++'<br>深渊币可在 <b style="color:var(--gold)">商店-深渊兑换</b> 中兑换稀有物品：深渊领主称号、永久属性点、稀有道具等。'
++'<br>每小时可扫荡一次，扫荡发放第 1 层至最高层的深渊币总和；无尽塔扫荡卡可立即扫荡（用 1 张 / 一键全部）。转生不会重置副本进度。'
++'<br>「摸鱼达人」「you勋章」「深渊领主」对深渊塔的掉落与扫荡均生效（当前 ×'+slackerMult().toFixed(1)+' ×'+medalMult().toFixed(1)+' ×'+abyssLordMult().toFixed(2)+'）。</div>';
+}
+function bindAbyssActions(){
+const enter=document.getElementById('enterAbyssBtn'); if(enter) enter.onclick=()=>{ state.inDungeon=true; state.dungeonMode='abyss'; if(state.abyssFloor<1) state.abyssFloor=1; fightReset(); updateBattle(); renderDungeon(); toast('进入深渊塔第 '+state.abyssFloor+' 层'); };
+const sweep=document.getElementById('abyssSweepBtn'); if(sweep) sweep.onclick=()=>{
+if(Date.now()-state.lastAbyssSweep<3600*1000){ toast('扫荡冷却中，请稍后再试'); return; }
+if(state.abyssMax<1){ toast('还没有通关记录，无法扫荡'); return; }
+const g=abyssSweepTotal(); state.abyssCoins+=g; state.lastAbyssSweep=Date.now(); save(); renderDungeon(); toast('深渊塔扫荡成功！获得 '+g+' 深渊币');
+};
+const useSweep=document.getElementById('abyssUseSweepBtn'); if(useSweep) useSweep.onclick=()=>{
+if(state.sweepCards<1){ toast('无尽塔扫荡卡不足'); return; }
+if(state.abyssMax<1){ toast('还没有通关记录，无法扫荡'); return; }
+state.sweepCards--; const g=abyssSweepTotal(); state.abyssCoins+=g; save(); renderDungeon(); toast('使用1张扫荡卡！获得 '+g+' 深渊币');
+};
+const useSweepAll=document.getElementById('abyssUseSweepAllBtn'); if(useSweepAll) useSweepAll.onclick=()=>{
+if(state.sweepCards<1){ toast('无尽塔扫荡卡不足'); return; }
+if(state.abyssMax<1){ toast('还没有通关记录，无法扫荡'); return; }
+const n=state.sweepCards; const g=abyssSweepTotal()*n; state.sweepCards=0; state.abyssCoins+=g; save(); renderDungeon(); toast('一键全部扫荡！使用 '+n+' 张卡，获得 '+g+' 深渊币');
+};
+}
+/* ============ v3.2 试炼一键速通 ============ */
+function trialSpeedrun(targetFloor){
+if(targetFloor<1||targetFloor>trialMaxFloor()){ toast('目标层数无效（1-'+trialMaxFloor()+'）'); return; }
+if(targetFloor>state.trialHighest){ toast('只能速通已通关的层数（最高 '+state.trialHighest+' 层），请先手动挑战'); return; }
+if(state.speedrunTickets<1){ toast('速通券不足，可在试炼商店用试炼币购买'); return; }
+state.speedrunTickets--;
+// 计算从当前层到目标层的奖励
+let totalGifts=0,totalCoins=0,totalTp=0,newTitles=[];
+const startFloor=state.trialFloor;
+for(let f=startFloor;f<targetFloor;f++){
+const n=trialGiftMult();
+totalGifts+=n;
+const coinGain=Math.floor(5*(1+f*0.02)*medalMult()*trialConquerorMult());
+totalCoins+=coinGain;
+const milestone=TRIAL_MILESTONE_REWARD[f+1];
+if(milestone&&state.trialMilestones.indexOf(f+1)===-1){
+state.trialMilestones.push(f+1);
+totalCoins+=milestone.coins;
+totalTp+=milestone.tp;
+if(milestone.title){
+if(milestone.title==='试炼征服者'){ state.trialTitles.conqueror=true; newTitles.push('试炼征服者'); }
+else if(milestone.title==='深渊行者'){ state.trialTitles.abyss=true; newTitles.push('深渊行者'); }
+else if(milestone.title==='you的化身'){ state.trialTitles.avatar=true; newTitles.push('you的化身'); }
+else if(milestone.title==='时空主宰'){ state.trialTitles.master=true; newTitles.push('时空主宰'); } // v3.8.0
+else if(milestone.title==='you的终结者'){ state.trialTitles.terminator=true; newTitles.push('you的终结者'); } // v3.8.0
+}
+}
+}
+// 发放奖励（礼包批量开启，不卡顿）
+batchOpenTrialGift(totalGifts); // v3.7.8 批量开礼包
+state.totalGiftsOpened+=totalGifts; // v3.2 速通也更新礼包计数
+state.trialCoins+=totalCoins;
+state.tradePoints+=totalTp;
+state.trialFloor=targetFloor;
+state.trialMax=Math.max(state.trialMax,targetFloor);
+state.trialHighest=Math.max(state.trialHighest,targetFloor);
+// 重置战斗到目标层
+if(state.inDungeon&&state.dungeonMode==='trial'){
+fightReset();
+fight.mhp=trialMonsterHp(targetFloor);
+fight.monName='you·试炼者·'+targetFloor;
+fight.php=maxHp();
+}
+save(); renderDungeon(); updateHUD(); checkAchievements();
+let msg='速通成功！第'+startFloor+'→'+targetFloor+'层：you的神秘礼包 ×'+totalGifts+'、试炼币 +'+totalCoins;
+if(totalTp>0) msg+='、交易点 +'+totalTp;
+if(newTitles.length>0) msg+='，获得称号「'+newTitles.join('」「')+'」';
+toast(msg);
+}
+function trialBuySpeedrunTicket(n){
+n=n||1;
+const cost=50*n; // 每张50试炼币
+if(state.trialCoins<cost){ toast('试炼币不足，需要 '+cost); return; }
+state.trialCoins-=cost;
+state.speedrunTickets+=n;
+save(); renderDungeon();
+toast('购买速通券 ×'+n+'（当前持有 '+state.speedrunTickets+' 张）');
+}
+function trialCoinShop(type){
+// 试炼币商店
+const prices={
+potion:100, // 丹药大礼包
+skillPotion:100,
+petPotion:100,
+tp:200, // 100交易点
+rp:500, // 1转生之力
+ticket:50, // 速通券
+resetScroll:300, // 副本重置卷
+};
+const cost=prices[type];
+if(!cost||state.trialCoins<cost){ toast('试炼币不足'); return; }
+state.trialCoins-=cost;
+if(type==='potion'){ state.pills+=20; toast('兑换丹药×20'); }
+else if(type==='skillPotion'){ state.skillPills+=20; toast('兑换技能结晶×20'); }
+else if(type==='petPotion'){ state.petPills+=20; toast('兑换宠物结晶×20'); }
+else if(type==='tp'){ state.tradePoints+=100; toast('兑换100交易点'); }
+else if(type==='rp'){ state.rebirthPoints+=1; toast('兑换1转生之力'); }
+else if(type==='ticket'){ state.speedrunTickets+=1; toast('兑换1张速通券'); }
+else if(type==='resetScroll'){ state.trialResetScrolls=(state.trialResetScrolls||0)+1; toast('兑换1张副本重置卷'); }
+save(); renderDungeon(); updateHUD();
+}
+function trialBlockHTML(can){
+if(!can){
+return ''
++'<div class="stat-row"><div class="label"><span class="title-icon">🌀</span> 来自you的试炼（另一个时空）</div></div>'
++'<div style="font-size:11px;color:var(--muted);margin:8px 0;line-height:1.7">另一个时空的试炼之地：怪物属性为你当前基础值的 <b style="color:var(--gold)">10%</b>（不含装备/称号/丹药），每层翻倍，最多 1000 层，怪物附带额外固定减伤。每战胜一层获得「you的神秘礼包」+试炼币。<br>需 <b style="color:var(--fire)">任一无尽塔通关 50 层</b> 才能进入。</div>'
++'<button class="big-btn" disabled>进入试炼（需无尽塔 50 层）</button>';
+}
+const f=Math.max(1,state.trialFloor), mx=Math.max(0,state.trialMax);
+const inThis=state.inDungeon&&state.dungeonMode==='trial';
+const resetCnt=state.trialResetCount||0;
+const tt=state.trialTitles||{};
+return ''
++'<div class="stat-row"><div class="label"><span class="title-icon">🌀</span> 来自you的试炼（另一个时空）</div></div>'
++'<div class="stat-row"><div class="label">当前层</div><div class="val">第 '+f+' 层（上限 '+trialMaxFloor()+' 层）</div></div>'
++'<div class="stat-row"><div class="label">最高层 / 历史最高</div><div class="val">第 '+mx+' / '+state.trialHighest+' 层</div></div>'
++'<div class="stat-row"><div class="label">重置次数</div><div class="val" style="color:var(--fire)">'+resetCnt+' 次（基础属性 ×'+trialResetMult().toFixed(0)+'）</div></div>'
++'<div class="stat-row"><div class="label">试炼币</div><div class="val" style="color:var(--gold)">'+state.trialCoins+' 枚（获取 ×'+trialCoinMult().toFixed(1)+'）</div></div>'
++'<div class="stat-row"><div class="label">速通券</div><div class="val">'+state.speedrunTickets+' 张</div></div>'
++'<div class="stat-row"><div class="label">you勋章</div><div class="val" style="color:var(--gold)">× '+state.medalCount+'（收益 ×'+medalMult().toFixed(1)+'）</div></div>'
++'<div class="stat-row"><div class="label">基础单</div><div class="val" style="color:var(--cyan)">'+state.baseScrolls+' 张</div></div>'
++'<div class="stat-row"><div class="label">you认可</div><div class="val" style="color:var(--purple,#b06bff)">× '+state.youTitle+'（试炼收益 ×'+trialGiftMult()+'）</div></div>'
++'<div class="stat-row"><div class="label">试炼称号</div><div class="val" style="font-size:11px">'+(tt.conqueror?'「试炼征服者」+10% ':'')+(tt.abyss?'「深渊行者」+20% ':'')+(tt.avatar?'「you的化身」+50% ':'')+(tt.master?'「时空主宰」+100% ':'')+(tt.terminator?'「you的终结者」+200% ':'')+(tt.conqueror||tt.abyss||tt.avatar||tt.master||tt.terminator?'':'暂无')+'（合计 +'+Math.round((trialConquerorMult()-1)*100)+'%）</div></div>'
++'<div class="stat-row"><div class="label">副本重置卷</div><div class="val">'+(state.trialResetScrolls||0)+' 张</div></div>'
++'<div class="stat-row"><div class="label">每层礼包</div><div class="val">× '+trialGiftMult()+' 个</div></div>'
++(inThis?'<button class="big-btn" id="exitDunBtn" style="border-color:rgba(91,208,255,.5);color:var(--cyan)">退出副本，回到主塔</button>'
+:'<button class="big-btn" id="enterTrialBtn">进入试炼（第 '+f+' 层）</button>')
+/* v3.2 一键速通 */
++'<div style="border-top:1px solid var(--border);margin:12px 0;padding-top:10px"><b style="color:var(--cyan)">⚡ 一键速通</b> <span style="color:var(--muted);font-size:11px">消耗1张速通券，直接获得从当前层到目标层的全部奖励</span></div>'
++'<div class="stat-row"><div class="label">速通到第 <input type="number" id="speedrunInput" value="'+Math.min(state.trialHighest||1,trialMaxFloor())+'" min="1" max="'+trialMaxFloor()+'" style="width:60px;background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:2px 4px;text-align:center"> 层</div><button class="ghost-btn" id="speedrunBtn" '+(state.speedrunTickets<1?'disabled':'')+'>速通（需1张券）</button></div>'
++'<div style="font-size:11px;color:var(--muted);margin-bottom:8px">可速通范围：第1层 ~ 第'+(state.trialHighest||0)+'层（历史最高）。速通获得全部礼包、试炼币、里程碑奖励，高战力玩家不用等！</div>'
+/* v3.2 试炼币商店 */
++'<div style="border-top:1px solid var(--border);margin:12px 0;padding-top:10px"><b style="color:var(--gold)">🏪 试炼币商店</b> <span style="color:var(--muted);font-size:11px">用试炼币兑换稀有物品</span></div>'
++'<div class="stat-row"><div class="label">速通券 ×1</div><button class="ghost-btn" id="tcShopTicket">50 币</button></div>'
++'<div class="stat-row"><div class="label">丹药 ×20</div><button class="ghost-btn" id="tcShopPotion">100 币</button></div>'
++'<div class="stat-row"><div class="label">技能结晶 ×20</div><button class="ghost-btn" id="tcShopSkill">100 币</button></div>'
++'<div class="stat-row"><div class="label">宠物结晶 ×20</div><button class="ghost-btn" id="tcShopPet">100 币</button></div>'
++'<div class="stat-row"><div class="label">交易点 ×100</div><button class="ghost-btn" id="tcShopTp">200 币</button></div>'
++'<div class="stat-row"><div class="label">转生之力 ×1</div><button class="ghost-btn" id="tcShopRp">500 币</button></div>'
++'<div class="stat-row"><div class="label">副本重置卷 ×1</div><button class="ghost-btn" id="tcShopReset">300 币</button></div>'
++'<div class="stat-row"><div class="label">重置试炼</div><div class="btns"><button class="ghost-btn" id="trialResetBtn">重置（属性×2）</button><button class="ghost-btn" id="trialScrollBtn">用重置卷恢复初始</button></div></div>'
++'<div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.7">'
++'怪物：生命 / 攻击 / 防御 = 你的基础生命 / 攻击 / 防御 × <b style="color:var(--gold)">10%</b>（不含装备/称号/丹药加成），每层翻倍，最多 100 层；每 50 层攻击 +10%、每 100 层护甲翻倍（可叠加）；怪物额外固定减伤 = 其最大生命值的 10%（每次受击先扣除该值）。'
++'<br>「重置试炼」：当前层回到第 1 层，怪物基础属性 <b style="color:var(--fire)">翻倍</b>（更难但奖励不变，可反复重置挑战）。'
++'<br>「副本重置卷」：将试炼增加的属性恢复到初始值（重置次数清零）。'
++'<br>每战胜一层获得 <b style="color:var(--gold)">you的神秘礼包</b> + <b style="color:var(--gold)">试炼币</b>（随层数递增）。礼包：1% 副本重置卷，9.9% you勋章（每个收益 ×2），79.2% 基础单（全属性 +10%/张），9.9% 称号「you认可」（试炼收益 +1倍/10个）。'
++'<br>每 10 层里程碑额外奖励试炼币+交易点，30/50/100/500/1000层解锁专属称号（征服者+10%/深渊行者+20%/you的化身+50%/时空主宰+100%/you的终结者+200%全属性）。1000层封顶后可反复刷。转生不会重置试炼进度。</div>';
+}
+function bindDungeonActions(view){
+if(view==='trial'){
+const et=document.getElementById('enterTrialBtn'); if(et) et.onclick=()=>enterDungeon('trial');
+const tr=document.getElementById('trialResetBtn'); if(tr) tr.onclick=resetTrial;
+const ts=document.getElementById('trialScrollBtn'); if(ts) ts.onclick=useTrialResetScroll;
+/* v3.2 速通按钮 */
+const sb=document.getElementById('speedrunBtn'); if(sb) sb.onclick=()=>{
+const input=document.getElementById('speedrunInput');
+const target=input?parseInt(input.value)||1:1;
+trialSpeedrun(target);
+};
+/* v3.2 试炼币商店 */
+const tct=document.getElementById('tcShopTicket'); if(tct) tct.onclick=()=>trialCoinShop('ticket');
+const tcp=document.getElementById('tcShopPotion'); if(tcp) tcp.onclick=()=>trialCoinShop('potion');
+const tcs=document.getElementById('tcShopSkill'); if(tcs) tcs.onclick=()=>trialCoinShop('skillPotion');
+const tcpet=document.getElementById('tcShopPet'); if(tcpet) tcpet.onclick=()=>trialCoinShop('petPotion');
+const tctp=document.getElementById('tcShopTp'); if(tctp) tctp.onclick=()=>trialCoinShop('tp');
+const tcrp=document.getElementById('tcShopRp'); if(tcrp) tcrp.onclick=()=>trialCoinShop('rp');
+const tcr=document.getElementById('tcShopReset'); if(tcr) tcr.onclick=()=>trialCoinShop('resetScroll');
+return;
+}
+const en=document.getElementById('enterDunBtn-'+view); if(en) en.onclick=()=>enterDungeon(view);
+const tk=document.getElementById('takeBtn-'+view); if(tk) tk.onclick=()=>takeOne(view);
+const tka=document.getElementById('takeAllBtn-'+view); if(tka) tka.onclick=()=>takeAll(view);
+const sw=document.getElementById('sweepBtn-'+view); if(sw) sw.onclick=()=>towerSweep(view,0);
+const usw=document.getElementById('useSweepBtn-'+view); if(usw) usw.onclick=()=>{ if(state.sweepCards<1){ toast('无尽塔扫荡卡不足'); return; } state.sweepCards--; towerSweep(view,1); };
+const uswa=document.getElementById('useSweepAllBtn-'+view); if(uswa) uswa.onclick=()=>{ if(state.sweepCards<1){ toast('无尽塔扫荡卡不足'); return; } const n=state.sweepCards; state.sweepCards=0; towerSweep(view,n); };
+}
+/* ============ 商城 / 交易点 ============ */
+function renderShop(){
+const box=document.getElementById('tab-shop');
+const stored=state.storedRebirth||0;
+box.innerHTML=''
++'<div class="stat-row"><div class="label">转生之力（可用）</div><div class="val">'+state.rebirthPoints+' 点</div></div>'
++(stored>0?'<div class="stat-row"><div class="label">转生之力（背包存储）</div><div class="val" style="color:var(--muted)">'+stored+' 点（不可兑换）</div></div>':'')
++'<div class="stat-row"><div class="label">交易点</div><div class="val" style="color:var(--cyan)">'+state.tradePoints+' 点</div></div>'
++'<div class="stat-row"><div class="label">野生狗奶</div><div class="val">× '+(state.wildDogMilk||0)+'（装备数值 ×'+dogMilkMult().toFixed(0)+'）</div></div>'
++'<div class="stat-row"><div class="label">兑换交易点 <span style="color:var(--muted);font-size:11px">1:10 · 不可逆</span></div></div>'
++'<div class="stat-row"><div class="label">×1（1 转生之力）</div><button class="ghost-btn" id="trade1">→ 10 交易点</button></div>'
++'<div class="stat-row"><div class="label">×10（10 转生之力）</div><button class="ghost-btn" id="trade10">→ 100 交易点</button></div>'
++'<div class="stat-row"><div class="label">×100（100 转生之力）</div><button class="ghost-btn" id="trade100">→ 1000 交易点</button></div>'
++'<div class="stat-row"><div class="label">一键兑换 <span style="color:var(--muted);font-size:11px">保留 '+tradeReserve()+' 点</span></div><button class="ghost-btn" id="tradeAllBtn">全部兑换</button></div>'
++'<div style="font-size:11px;color:var(--red);margin-bottom:8px">兑换不可逆，仅可用「可用」转生之力兑换；背包存储的转生之力不可兑换</div>'
++'<div class="stat-row"><div class="label">称号 · 山河共主 <span style="color:var(--muted);font-size:11px">×'+state.titleCount+'</span></div><div class="btns"><button class="ghost-btn" id="buyTitle1">×1</button><button class="ghost-btn" id="buyTitle10">×10</button><button class="ghost-btn" id="buyTitle100">×100</button><button class="ghost-btn" id="buyTitle1000">×1000</button><button class="ghost-btn" id="buyTitleAllBtn">全部</button></div></div>'
++'<div class="stat-row"><div class="label">称号 · 摸鱼达人 <span style="color:var(--muted);font-size:11px">×'+state.slackerCount+'</span></div><div class="btns"><button class="ghost-btn" id="buySlacker1">×1</button><button class="ghost-btn" id="buySlacker10">×10</button><button class="ghost-btn" id="buySlacker100">×100</button><button class="ghost-btn" id="buySlacker1000">×1000</button><button class="ghost-btn" id="buySlackerAllBtn">全部</button></div></div>'
++'<div class="stat-row"><div class="label">神秘礼包</div><div class="btns"><button class="ghost-btn" id="buyGift1">×1</button><button class="ghost-btn" id="buyGift10">×10</button><button class="ghost-btn" id="buyGift100">×100</button><button class="ghost-btn" id="buyGift1000">×1000</button><button class="ghost-btn" id="buyGiftAllBtn">全部</button></div></div>'
++'<div class="stat-row"><div class="label">欧皇礼包 <span style="color:var(--muted);font-size:11px">100 交易点 · 持有差一点×'+state.almostCount+'</span></div><div class="btns"><button class="ghost-btn" id="buyLucky1">×1</button><button class="ghost-btn" id="buyLucky10">×10</button><button class="ghost-btn" id="buyLucky100">×100</button><button class="ghost-btn" id="buyLucky1000">×1000</button><button class="ghost-btn" id="buyLuckyAllBtn">全部</button></div></div>'
++'<div class="stat-row"><div class="label">回收 · 山河共主</div><div class="btns"><button class="ghost-btn" id="sellTitleBtn">回收×1</button><button class="ghost-btn" id="sellTitleAllBtn">全部回收</button></div></div>'
++'<div class="stat-row"><div class="label">回收 · 摸鱼达人</div><div class="btns"><button class="ghost-btn" id="sellSlackerBtn">回收×1</button><button class="ghost-btn" id="sellSlackerAllBtn">全部回收</button></div></div>'
++'<div style="border-top:1px solid var(--border);margin:12px 0;padding-top:10px"><b style="color:var(--cyan)">⚡ 交易点强化</b> <span style="color:var(--muted);font-size:11px">用交易点购买永久属性和功能</span></div>'
++'<div class="stat-row"><div class="label">攻击 +1 <span style="color:var(--muted);font-size:11px">累计 +'+(state.boughtAttr?state.boughtAttr.atk:0)+'</span></div><div class="btns"><button class="ghost-btn" id="buyAtkBtn">×1</button><button class="ghost-btn" id="buyAtk10">×10</button><button class="ghost-btn" id="buyAtk100">×100</button><button class="ghost-btn" id="buyAtkAll">全部</button></div></div>'
++'<div class="stat-row"><div class="label">生命 +10 <span style="color:var(--muted);font-size:11px">累计 +'+(state.boughtAttr?state.boughtAttr.hp*10:0)+'</span></div><div class="btns"><button class="ghost-btn" id="buyHpBtn">×1</button><button class="ghost-btn" id="buyHp10">×10</button><button class="ghost-btn" id="buyHp100">×100</button><button class="ghost-btn" id="buyHpAll">全部</button></div></div>'
++'<div class="stat-row"><div class="label">防御 +1 <span style="color:var(--muted);font-size:11px">累计 +'+(state.boughtAttr?state.boughtAttr.def:0)+'</span></div><div class="btns"><button class="ghost-btn" id="buyDefBtn">×1</button><button class="ghost-btn" id="buyDef10">×10</button><button class="ghost-btn" id="buyDef100">×100</button><button class="ghost-btn" id="buyDefAll">全部</button></div></div>'
++'<div class="stat-row"><div class="label">永久速率 +0.5x <span style="color:var(--muted);font-size:11px">当前 +'+(state.boughtSpeed*0.5)+'x（上限+2x）</span></div><button class="ghost-btn" id="buySpeedBtn" '+(state.boughtSpeed>=4?'disabled':'')+'>'+(state.boughtSpeed>=4?'已满级':SPEED_COST+' 点')+'</button></div>'
++'<div class="stat-row"><div class="label">幸运符 <span style="color:var(--muted);font-size:11px">持有 '+state.luckyCharms+'，下次事件必出好结果</span></div><div class="btns"><button class="ghost-btn" id="buyCharm1">买×1</button><button class="ghost-btn" id="buyCharm10">买×10</button></div></div>'
++'<div class="stat-row"><div class="label">神秘抽卡 <span style="color:var(--muted);font-size:11px">'+GACHA_COST+'点/次，可出交易点/转生之力/称号/装备</span></div><div class="btns"><button class="ghost-btn" id="gacha1">抽×1</button><button class="ghost-btn" id="gacha10">抽×10</button></div></div>'
+/* v3.4 新礼包区域 */
++'<div style="border-top:1px solid var(--border);margin:12px 0;padding-top:10px"><b style="color:var(--gold)">🎁 超值礼包</b> <span style="color:var(--muted);font-size:11px">性价比超高，限时特惠</span></div>'
++'<div class="stat-row"><div class="label">新手成长礼包 <span style="color:var(--muted);font-size:11px">经验药水×3、金币福袋×3、转生宝箱×2</span></div><div class="btns"><button class="ghost-btn" id="giftStarter" style="color:var(--gold);border-color:var(--gold)">×1</button><button class="ghost-btn" id="giftStarter10" style="color:var(--gold);border-color:var(--gold)">×10</button><button class="ghost-btn" id="giftStarter100" style="color:var(--gold);border-color:var(--gold)">×100</button><button class="ghost-btn" id="giftStarterAll" style="color:var(--gold);border-color:var(--gold)">全部</button></div></div>'
++'<div class="stat-row"><div class="label">豪华进阶礼包 <span style="color:var(--muted);font-size:11px">经验药水×10、金币福袋×10、转生宝箱×10、属性药水×5、山河共主×10</span></div><div class="btns"><button class="ghost-btn" id="giftLuxury" style="color:var(--gold);border-color:var(--gold)">×1</button><button class="ghost-btn" id="giftLuxury10" style="color:var(--gold);border-color:var(--gold)">×10</button><button class="ghost-btn" id="giftLuxury100" style="color:var(--gold);border-color:var(--gold)">×100</button><button class="ghost-btn" id="giftLuxuryAll" style="color:var(--gold);border-color:var(--gold)">全部</button></div></div>'
++'<div class="stat-row"><div class="label">至尊大礼包 <span style="color:var(--muted);font-size:11px">经验药水×30、金币福袋×30、转生宝箱×30、属性药水×20、山河共主×50、摸鱼达人×10</span></div><div class="btns"><button class="ghost-btn" id="giftSupreme" style="color:var(--fire);border-color:var(--fire)">×1</button><button class="ghost-btn" id="giftSupreme10" style="color:var(--fire);border-color:var(--fire)">×10</button><button class="ghost-btn" id="giftSupreme100" style="color:var(--fire);border-color:var(--fire)">×100</button><button class="ghost-btn" id="giftSupremeAll" style="color:var(--fire);border-color:var(--fire)">全部</button></div></div>'
++'<div class="stat-row"><div class="label">每日特惠礼包 <span style="color:var(--muted);font-size:11px">每天1次，经验药水×5、金币福袋×5、转生宝箱×3、随机称号</span></div><button class="ghost-btn" id="giftDaily" style="color:var(--cyan);border-color:var(--cyan)">100 点</button></div>'
++'<div class="stat-row"><div class="label">神秘宝箱 <span style="color:var(--muted);font-size:11px">随机开出稀有道具，可能血赚！</span></div><div class="btns"><button class="ghost-btn" id="giftMystery" style="color:var(--purple,#b06bff);border-color:var(--purple,#b06bff)">×1(300点)</button><button class="ghost-btn" id="giftMystery10" style="color:var(--purple,#b06bff);border-color:var(--purple,#b06bff)">×10(3000点)</button><button class="ghost-btn" id="giftMystery100" style="color:var(--purple,#b06bff);border-color:var(--purple,#b06bff)">×100(30000点)</button><button class="ghost-btn" id="giftMysteryAll" style="color:var(--purple,#b06bff);border-color:var(--purple,#b06bff)">全部</button></div></div>'
+/* v3.4 新道具区域 */
++'<div style="border-top:1px solid var(--border);margin:12px 0;padding-top:10px"><b style="color:var(--cyan)">🧪 消耗道具</b> <span style="color:var(--muted);font-size:11px">购买后在背包中使用</span></div>'
++'<div class="stat-row"><div class="label">经验药水 <span style="color:var(--muted);font-size:11px">持有×'+state.expPotions+'，使用后获得5倍升级经验</span></div><div class="btns"><button class="ghost-btn" id="buyExpPotion1">×1</button><button class="ghost-btn" id="buyExpPotion10">×10</button><button class="ghost-btn" id="buyExpPotion100">×100</button><button class="ghost-btn" id="buyExpPotion1000">×1000</button><button class="ghost-btn" id="buyExpPotionAll">全部</button></div></div>'
++'<div class="stat-row"><div class="label">金币福袋 <span style="color:var(--muted);font-size:11px">持有×'+state.goldBags+'，使用后获得100倍层金币</span></div><div class="btns"><button class="ghost-btn" id="buyGoldBag1">×1</button><button class="ghost-btn" id="buyGoldBag10">×10</button><button class="ghost-btn" id="buyGoldBag100">×100</button><button class="ghost-btn" id="buyGoldBag1000">×1000</button><button class="ghost-btn" id="buyGoldBagAll">全部</button></div></div>'
++'<div class="stat-row"><div class="label">转生之力宝箱 <span style="color:var(--muted);font-size:11px">持有×'+state.rebirthChests+'，使用后获得5点转生之力</span></div><div class="btns"><button class="ghost-btn" id="buyRebirthChest1">×1</button><button class="ghost-btn" id="buyRebirthChest10">×10</button><button class="ghost-btn" id="buyRebirthChest100">×100</button><button class="ghost-btn" id="buyRebirthChest1000">×1000</button><button class="ghost-btn" id="buyRebirthChestAll">全部</button></div></div>'
++'<div class="stat-row"><div class="label">属性药水 <span style="color:var(--muted);font-size:11px">持有×'+state.statPotions+'，使用后永久+10攻+50血+5防</span></div><div class="btns"><button class="ghost-btn" id="buyStatPotion1">×1</button><button class="ghost-btn" id="buyStatPotion10">×10</button><button class="ghost-btn" id="buyStatPotion100">×100</button><button class="ghost-btn" id="buyStatPotion1000">×1000</button><button class="ghost-btn" id="buyStatPotionAll">全部</button></div></div>'
+/* v3.7 深渊币兑换区 */
++'<div style="border-top:1px solid var(--border);margin:12px 0;padding-top:10px"><b style="color:var(--purple)">🌋 深渊兑换</b> <span style="color:var(--muted);font-size:11px">用深渊币兑换稀有物品（深渊塔产出）</span></div>'
++'<div class="stat-row"><div class="label">深渊币</div><div class="val" style="color:var(--purple)">'+fmt(state.abyssCoins)+' 枚</div></div>'
++'<div class="stat-row"><div class="label">称号 · 深渊领主 <span style="color:var(--muted);font-size:11px">×'+state.abyssLordCount+' · 全属性+全收益+5%/个（额外乘区）</span></div><div class="btns"><button class="ghost-btn" id="abyssBuyLord1" style="color:var(--purple);border-color:var(--purple)">×1(50币)</button><button class="ghost-btn" id="abyssBuyLord10" style="color:var(--purple);border-color:var(--purple)">×10(500币)</button><button class="ghost-btn" id="abyssBuyLord100" style="color:var(--purple);border-color:var(--purple)">×100(5000币)</button><button class="ghost-btn" id="abyssBuyLordAll" style="color:var(--purple);border-color:var(--purple)">全部</button></div></div>'
++'<div class="stat-row"><div class="label">攻击 +5 <span style="color:var(--muted);font-size:11px">深渊专属，累计 +'+(state.abyssAttr?(state.abyssAttr.atk||0):0)+'</span></div><div class="btns"><button class="ghost-btn" id="abyssBuyAtk">×1(100币)</button><button class="ghost-btn" id="abyssBuyAtk10">×10(1000币)</button><button class="ghost-btn" id="abyssBuyAtkAll">全部</button></div></div>'
++'<div class="stat-row"><div class="label">生命 +50 <span style="color:var(--muted);font-size:11px">深渊专属，累计 +'+(state.abyssAttr?(state.abyssAttr.hp||0):0)+'</span></div><div class="btns"><button class="ghost-btn" id="abyssBuyHp">×1(100币)</button><button class="ghost-btn" id="abyssBuyHp10">×10(1000币)</button><button class="ghost-btn" id="abyssBuyHpAll">全部</button></div></div>'
++'<div class="stat-row"><div class="label">防御 +5 <span style="color:var(--muted);font-size:11px">深渊专属，累计 +'+(state.abyssAttr?(state.abyssAttr.def||0):0)+'</span></div><div class="btns"><button class="ghost-btn" id="abyssBuyDef">×1(100币)</button><button class="ghost-btn" id="abyssBuyDef10">×10(1000币)</button><button class="ghost-btn" id="abyssBuyDefAll">全部</button></div></div>'
++'<div class="stat-row"><div class="label">转生之力宝箱 <span style="color:var(--muted);font-size:11px">使用后获得5点转生之力</span></div><div class="btns"><button class="ghost-btn" id="abyssBuyRebirth1">×1(30币)</button><button class="ghost-btn" id="abyssBuyRebirth10">×10(300币)</button><button class="ghost-btn" id="abyssBuyRebirth100">×100(3000币)</button><button class="ghost-btn" id="abyssBuyRebirthAll">全部</button></div></div>'
++'<div class="stat-row"><div class="label">无尽塔扫荡卡 <span style="color:var(--muted);font-size:11px">持有×'+state.sweepCards+'</span></div><div class="btns"><button class="ghost-btn" id="abyssBuySweep1">×1(20币)</button><button class="ghost-btn" id="abyssBuySweep10">×10(200币)</button><button class="ghost-btn" id="abyssBuySweep100">×100(2000币)</button><button class="ghost-btn" id="abyssBuySweepAll">全部</button></div></div>'
++'<div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.7">'
++'神秘礼包（10 交易点）掉落概率：<br>'
++'· 摸鱼达人 ×3 —— 0.4%<br>'
++'· 山河共主 ×3 —— 4%<br>'
++'· 80 交易点 —— 1.5%<br>'
++'· 50 交易点 —— 2.5%<br>'
++'· 5 转生之力 —— 3%<br>'
++'· 10 交易点 —— 7%<br>'
++'· 2~4 交易点 —— 81.6%<br>'
++'欧皇礼包（100 交易点）掉落概率：<br>'
++'· 签到重置卡 —— 最高 10%（原 0.1%，随差一点持有量提升）<br>'
++'· 无尽塔扫荡卡 —— 最高 5%（原 0.05%，随差一点持有量提升）<br>'
++'· 「差一点就得到了」称号 —— 最低 80%（每持有 100 个降低 1/1000000）<br>'
++'· 野生狗奶 —— 剩余概率（不可使用，自动生效，每个使装备数值翻倍）<br>'
++'礼包购买后立即开启，不可回收。称号回收价 = 购买价 × 90%；转生之力兑换交易点不可逆。<br>'
++'「一键兑换」会保留 <b style="color:var(--cyan)">'+tradeReserve()+'</b> 点可用转生之力（丹药服用次数÷10 向上取整 +20），其余全部兑换成交易点。<br>'
++'每种商品的「买全部 / 开全部」会用尽当前交易点，一次购买该商品的最大数量（大数额批量开包采用概率近似模拟，不会卡顿）。</div>';
+const t1=document.getElementById('trade1'); t1.disabled=state.rebirthPoints<1; t1.onclick=()=>tradePoints(1);
+const t10=document.getElementById('trade10'); t10.disabled=state.rebirthPoints<10; t10.onclick=()=>tradePoints(10);
+const t100=document.getElementById('trade100'); t100.disabled=state.rebirthPoints<100; t100.onclick=()=>tradePoints(100);
+const ta=document.getElementById('tradeAllBtn'); ta.disabled=state.rebirthPoints<=tradeReserve(); ta.onclick=tradeAll;
+const bt1=document.getElementById('buyTitle1'); bt1.disabled=state.tradePoints<10; bt1.onclick=()=>buyTitle(1);
+const bt10=document.getElementById('buyTitle10'); bt10.disabled=state.tradePoints<100; bt10.onclick=()=>buyTitle(10);
+const bt100=document.getElementById('buyTitle100'); bt100.disabled=state.tradePoints<1000; bt100.onclick=()=>buyTitle(100);
+const bt1000=document.getElementById('buyTitle1000'); bt1000.disabled=state.tradePoints<10000; bt1000.onclick=()=>buyTitle(1000);
+const bs1=document.getElementById('buySlacker1'); bs1.disabled=state.tradePoints<100; bs1.onclick=()=>buySlacker(1);
+const bs10=document.getElementById('buySlacker10'); bs10.disabled=state.tradePoints<1000; bs10.onclick=()=>buySlacker(10);
+const bs100=document.getElementById('buySlacker100'); bs100.disabled=state.tradePoints<10000; bs100.onclick=()=>buySlacker(100);
+const bs1000=document.getElementById('buySlacker1000'); bs1000.disabled=state.tradePoints<100000; bs1000.onclick=()=>buySlacker(1000);
+const btAll=document.getElementById('buyTitleAllBtn'); btAll.disabled=state.tradePoints<10; btAll.onclick=buyTitleAll;
+const bsAll=document.getElementById('buySlackerAllBtn'); bsAll.disabled=state.tradePoints<100; bsAll.onclick=buySlackerAll;
+const bg1=document.getElementById('buyGift1'); bg1.disabled=state.tradePoints<10; bg1.onclick=()=>buyGift(1);
+const bg10=document.getElementById('buyGift10'); bg10.disabled=state.tradePoints<100; bg10.onclick=()=>buyGift(10);
+const bg100=document.getElementById('buyGift100'); bg100.disabled=state.tradePoints<1000; bg100.onclick=()=>buyGift(100);
+const bg1000=document.getElementById('buyGift1000'); bg1000.disabled=state.tradePoints<10000; bg1000.onclick=()=>buyGift(1000);
+const bgAll=document.getElementById('buyGiftAllBtn'); bgAll.disabled=state.tradePoints<10; bgAll.onclick=buyGiftAll;
+const lk1=document.getElementById('buyLucky1'); lk1.disabled=state.tradePoints<100; lk1.onclick=()=>openLuckyGift(1);
+const lk10=document.getElementById('buyLucky10'); lk10.disabled=state.tradePoints<1000; lk10.onclick=()=>openLuckyGift(10);
+const lk100=document.getElementById('buyLucky100'); lk100.disabled=state.tradePoints<10000; lk100.onclick=()=>openLuckyGift(100);
+const lk1000=document.getElementById('buyLucky1000'); lk1000.disabled=state.tradePoints<100000; lk1000.onclick=()=>openLuckyGift(1000);
+const lkAll=document.getElementById('buyLuckyAllBtn'); lkAll.disabled=state.tradePoints<100; lkAll.onclick=openLuckyAll;
+const st=document.getElementById('sellTitleBtn'); st.disabled=state.titleCount<1; st.onclick=()=>sellTitle(1);
+const sta=document.getElementById('sellTitleAllBtn'); if(sta){ sta.disabled=state.titleCount<1; sta.onclick=()=>sellTitle(state.titleCount); }
+const ss=document.getElementById('sellSlackerBtn'); ss.disabled=state.slackerCount<1; ss.onclick=()=>sellSlacker(1);
+const ssa=document.getElementById('sellSlackerAllBtn'); if(ssa){ ssa.disabled=state.slackerCount<1; ssa.onclick=()=>sellSlacker(state.slackerCount); }
+/* v3.1 交易点强化按钮 */
+const ba=document.getElementById('buyAtkBtn'); if(ba){ ba.disabled=state.tradePoints<ATTR_COST.atk; ba.onclick=()=>buyAttr('atk'); }
+const ba10=document.getElementById('buyAtk10'); if(ba10){ ba10.disabled=state.tradePoints<ATTR_COST.atk*10; ba10.onclick=()=>buyAttrBatch('atk',10); }
+const ba100=document.getElementById('buyAtk100'); if(ba100){ ba100.disabled=state.tradePoints<ATTR_COST.atk*100; ba100.onclick=()=>buyAttrBatch('atk',100); }
+const baAll=document.getElementById('buyAtkAll'); if(baAll){ const n=Math.floor(state.tradePoints/ATTR_COST.atk); baAll.disabled=n<1; baAll.onclick=()=>buyAttrBatch('atk',n); }
+const bh=document.getElementById('buyHpBtn'); if(bh){ bh.disabled=state.tradePoints<ATTR_COST.hp; bh.onclick=()=>buyAttr('hp'); }
+const bh10=document.getElementById('buyHp10'); if(bh10){ bh10.disabled=state.tradePoints<ATTR_COST.hp*10; bh10.onclick=()=>buyAttrBatch('hp',10); }
+const bh100=document.getElementById('buyHp100'); if(bh100){ bh100.disabled=state.tradePoints<ATTR_COST.hp*100; bh100.onclick=()=>buyAttrBatch('hp',100); }
+const bhAll=document.getElementById('buyHpAll'); if(bhAll){ const n=Math.floor(state.tradePoints/ATTR_COST.hp); bhAll.disabled=n<1; bhAll.onclick=()=>buyAttrBatch('hp',n); }
+const bd=document.getElementById('buyDefBtn'); if(bd){ bd.disabled=state.tradePoints<ATTR_COST.def; bd.onclick=()=>buyAttr('def'); }
+const bd10=document.getElementById('buyDef10'); if(bd10){ bd10.disabled=state.tradePoints<ATTR_COST.def*10; bd10.onclick=()=>buyAttrBatch('def',10); }
+const bd100=document.getElementById('buyDef100'); if(bd100){ bd100.disabled=state.tradePoints<ATTR_COST.def*100; bd100.onclick=()=>buyAttrBatch('def',100); }
+const bdAll=document.getElementById('buyDefAll'); if(bdAll){ const n=Math.floor(state.tradePoints/ATTR_COST.def); bdAll.disabled=n<1; bdAll.onclick=()=>buyAttrBatch('def',n); }
+const bsp=document.getElementById('buySpeedBtn'); if(bsp&&state.boughtSpeed<4){ bsp.disabled=state.tradePoints<SPEED_COST; bsp.onclick=buySpeed; }
+const bc1=document.getElementById('buyCharm1'); if(bc1){ bc1.disabled=state.tradePoints<LUCKY_CHARM_COST; bc1.onclick=()=>buyLuckyCharm(1); }
+const bc10=document.getElementById('buyCharm10'); if(bc10){ bc10.disabled=state.tradePoints<LUCKY_CHARM_COST*10; bc10.onclick=()=>buyLuckyCharm(10); }
+const g1=document.getElementById('gacha1'); if(g1){ g1.disabled=state.tradePoints<GACHA_COST; g1.onclick=()=>doGacha(1); }
+const g10=document.getElementById('gacha10'); if(g10){ g10.disabled=state.tradePoints<GACHA_COST*10; g10.onclick=()=>doGacha(10); }
+/* v3.4 新礼包按钮 */
+const gs=document.getElementById('giftStarter'); if(gs){ gs.disabled=state.tradePoints<50; gs.onclick=()=>buyNewGift('starter',1); }
+const gs10=document.getElementById('giftStarter10'); if(gs10){ gs10.disabled=state.tradePoints<500; gs10.onclick=()=>buyNewGift('starter',10); }
+const gs100=document.getElementById('giftStarter100'); if(gs100){ gs100.disabled=state.tradePoints<5000; gs100.onclick=()=>buyNewGift('starter',100); }
+const gsAll=document.getElementById('giftStarterAll'); if(gsAll){ const n=Math.floor(state.tradePoints/50); gsAll.disabled=n<1; gsAll.onclick=()=>buyNewGift('starter',n); }
+const gl=document.getElementById('giftLuxury'); if(gl){ gl.disabled=state.tradePoints<500; gl.onclick=()=>buyNewGift('luxury',1); }
+const gl10=document.getElementById('giftLuxury10'); if(gl10){ gl10.disabled=state.tradePoints<5000; gl10.onclick=()=>buyNewGift('luxury',10); }
+const gl100=document.getElementById('giftLuxury100'); if(gl100){ gl100.disabled=state.tradePoints<50000; gl100.onclick=()=>buyNewGift('luxury',100); }
+const glAll=document.getElementById('giftLuxuryAll'); if(glAll){ const n=Math.floor(state.tradePoints/500); glAll.disabled=n<1; glAll.onclick=()=>buyNewGift('luxury',n); }
+const gsu=document.getElementById('giftSupreme'); if(gsu){ gsu.disabled=state.tradePoints<2000; gsu.onclick=()=>buyNewGift('supreme',1); }
+const gsu10=document.getElementById('giftSupreme10'); if(gsu10){ gsu10.disabled=state.tradePoints<20000; gsu10.onclick=()=>buyNewGift('supreme',10); }
+const gsu100=document.getElementById('giftSupreme100'); if(gsu100){ gsu100.disabled=state.tradePoints<200000; gsu100.onclick=()=>buyNewGift('supreme',100); }
+const gsuAll=document.getElementById('giftSupremeAll'); if(gsuAll){ const n=Math.floor(state.tradePoints/2000); gsuAll.disabled=n<1; gsuAll.onclick=()=>buyNewGift('supreme',n); }
+const gd=document.getElementById('giftDaily'); if(gd){ const today=new Date().toISOString().slice(0,10); gd.disabled=state.tradePoints<100||state.dailyGiftClaimed===today; gd.onclick=()=>buyNewGift('daily',1); if(state.dailyGiftClaimed===today) gd.textContent='今日已领'; }
+const gm=document.getElementById('giftMystery'); if(gm){ gm.disabled=state.tradePoints<300; gm.onclick=()=>buyNewGift('mystery',1); }
+const gm10=document.getElementById('giftMystery10'); if(gm10){ gm10.disabled=state.tradePoints<3000; gm10.onclick=()=>buyNewGift('mystery',10); }
+const gm100=document.getElementById('giftMystery100'); if(gm100){ gm100.disabled=state.tradePoints<30000; gm100.onclick=()=>buyNewGift('mystery',100); }
+const gmAll=document.getElementById('giftMysteryAll'); if(gmAll){ gmAll.disabled=state.tradePoints<300; gmAll.onclick=()=>buyNewGift('mystery',Math.floor(state.tradePoints/300)); }
+/* v3.4 新道具按钮 */
+const bep1=document.getElementById('buyExpPotion1'); if(bep1){ bep1.disabled=state.tradePoints<20; bep1.onclick=()=>{ state.tradePoints-=20; state.expPotions++; save(); renderShop(); renderBackpack(); }; }
+const bep10=document.getElementById('buyExpPotion10'); if(bep10){ bep10.disabled=state.tradePoints<180; bep10.onclick=()=>{ state.tradePoints-=180; state.expPotions+=10; save(); renderShop(); renderBackpack(); }; }
+const bep100=document.getElementById('buyExpPotion100'); if(bep100){ bep100.disabled=state.tradePoints<1800; bep100.onclick=()=>{ state.tradePoints-=1800; state.expPotions+=100; save(); renderShop(); renderBackpack(); }; }
+const bep1000=document.getElementById('buyExpPotion1000'); if(bep1000){ bep1000.disabled=state.tradePoints<18000; bep1000.onclick=()=>{ state.tradePoints-=18000; state.expPotions+=1000; save(); renderShop(); renderBackpack(); }; }
+const bepAll=document.getElementById('buyExpPotionAll'); if(bepAll){ const n=Math.floor(state.tradePoints/20); bepAll.disabled=n<1; bepAll.onclick=()=>{ state.tradePoints-=n*20; state.expPotions+=n; save(); renderShop(); renderBackpack(); }; }
+const bgb1=document.getElementById('buyGoldBag1'); if(bgb1){ bgb1.disabled=state.tradePoints<15; bgb1.onclick=()=>{ state.tradePoints-=15; state.goldBags++; save(); renderShop(); renderBackpack(); }; }
+const bgb10=document.getElementById('buyGoldBag10'); if(bgb10){ bgb10.disabled=state.tradePoints<130; bgb10.onclick=()=>{ state.tradePoints-=130; state.goldBags+=10; save(); renderShop(); renderBackpack(); }; }
+const bgb100=document.getElementById('buyGoldBag100'); if(bgb100){ bgb100.disabled=state.tradePoints<1300; bgb100.onclick=()=>{ state.tradePoints-=1300; state.goldBags+=100; save(); renderShop(); renderBackpack(); }; }
+const bgb1000=document.getElementById('buyGoldBag1000'); if(bgb1000){ bgb1000.disabled=state.tradePoints<13000; bgb1000.onclick=()=>{ state.tradePoints-=13000; state.goldBags+=1000; save(); renderShop(); renderBackpack(); }; }
+const bgbAll=document.getElementById('buyGoldBagAll'); if(bgbAll){ const n=Math.floor(state.tradePoints/15); bgbAll.disabled=n<1; bgbAll.onclick=()=>{ state.tradePoints-=n*15; state.goldBags+=n; save(); renderShop(); renderBackpack(); }; }
+const brc1=document.getElementById('buyRebirthChest1'); if(brc1){ brc1.disabled=state.tradePoints<40; brc1.onclick=()=>{ state.tradePoints-=40; state.rebirthChests++; save(); renderShop(); renderBackpack(); }; }
+const brc10=document.getElementById('buyRebirthChest10'); if(brc10){ brc10.disabled=state.tradePoints<380; brc10.onclick=()=>{ state.tradePoints-=380; state.rebirthChests+=10; save(); renderShop(); renderBackpack(); }; }
+const brc100=document.getElementById('buyRebirthChest100'); if(brc100){ brc100.disabled=state.tradePoints<3800; brc100.onclick=()=>{ state.tradePoints-=3800; state.rebirthChests+=100; save(); renderShop(); renderBackpack(); }; }
+const brc1000=document.getElementById('buyRebirthChest1000'); if(brc1000){ brc1000.disabled=state.tradePoints<38000; brc1000.onclick=()=>{ state.tradePoints-=38000; state.rebirthChests+=1000; save(); renderShop(); renderBackpack(); }; }
+const brcAll=document.getElementById('buyRebirthChestAll'); if(brcAll){ const n=Math.floor(state.tradePoints/40); brcAll.disabled=n<1; brcAll.onclick=()=>{ state.tradePoints-=n*40; state.rebirthChests+=n; save(); renderShop(); renderBackpack(); }; }
+const bsp1=document.getElementById('buyStatPotion1'); if(bsp1){ bsp1.disabled=state.tradePoints<80; bsp1.onclick=()=>{ state.tradePoints-=80; state.statPotions++; save(); renderShop(); renderBackpack(); }; }
+const bsp10=document.getElementById('buyStatPotion10'); if(bsp10){ bsp10.disabled=state.tradePoints<750; bsp10.onclick=()=>{ state.tradePoints-=750; state.statPotions+=10; save(); renderShop(); renderBackpack(); }; }
+const bsp100=document.getElementById('buyStatPotion100'); if(bsp100){ bsp100.disabled=state.tradePoints<7500; bsp100.onclick=()=>{ state.tradePoints-=7500; state.statPotions+=100; save(); renderShop(); renderBackpack(); }; }
+const bsp1000=document.getElementById('buyStatPotion1000'); if(bsp1000){ bsp1000.disabled=state.tradePoints<75000; bsp1000.onclick=()=>{ state.tradePoints-=75000; state.statPotions+=1000; save(); renderShop(); renderBackpack(); }; }
+const bspAll=document.getElementById('buyStatPotionAll'); if(bspAll){ const n=Math.floor(state.tradePoints/80); bspAll.disabled=n<1; bspAll.onclick=()=>{ state.tradePoints-=n*80; state.statPotions+=n; save(); renderShop(); renderBackpack(); }; }
+/* v3.7 深渊币兑换按钮绑定 */
+if(!state.abyssAttr) state.abyssAttr={atk:0,hp:0,def:0};
+const al1=document.getElementById('abyssBuyLord1'); if(al1){ al1.disabled=state.abyssCoins<50; al1.onclick=()=>{ state.abyssCoins-=50; state.abyssLordCount=capTitle(state.abyssLordCount+1); save(); renderShop(); renderTitles(); toast('获得「深渊领主」×1（全属性+全收益+5%，额外乘区）'); }; }
+const al10=document.getElementById('abyssBuyLord10'); if(al10){ al10.disabled=state.abyssCoins<500; al10.onclick=()=>{ state.abyssCoins-=500; state.abyssLordCount=capTitle(state.abyssLordCount+10); save(); renderShop(); renderTitles(); toast('获得「深渊领主」×10'); }; }
+const al100=document.getElementById('abyssBuyLord100'); if(al100){ al100.disabled=state.abyssCoins<5000; al100.onclick=()=>{ state.abyssCoins-=5000; state.abyssLordCount=capTitle(state.abyssLordCount+100); save(); renderShop(); renderTitles(); toast('获得「深渊领主」×100'); }; }
+const alAll=document.getElementById('abyssBuyLordAll'); if(alAll){ const n=Math.floor(state.abyssCoins/50); alAll.disabled=n<1; alAll.onclick=()=>{ state.abyssCoins-=n*50; state.abyssLordCount=capTitle(state.abyssLordCount+n); save(); renderShop(); renderTitles(); toast('获得「深渊领主」×'+n); }; }
+const aatk=document.getElementById('abyssBuyAtk'); if(aatk){ aatk.disabled=state.abyssCoins<100; aatk.onclick=()=>{ state.abyssCoins-=100; state.abyssAttr.atk+=5; save(); renderShop(); toast('深渊专属：攻击 +5（累计 +'+state.abyssAttr.atk+'）'); }; }
+const aatk10=document.getElementById('abyssBuyAtk10'); if(aatk10){ aatk10.disabled=state.abyssCoins<1000; aatk10.onclick=()=>{ state.abyssCoins-=1000; state.abyssAttr.atk+=50; save(); renderShop(); toast('深渊专属：攻击 +50（累计 +'+state.abyssAttr.atk+'）'); }; }
+const aatkAll=document.getElementById('abyssBuyAtkAll'); if(aatkAll){ aatkAll.disabled=state.abyssCoins<100; aatkAll.onclick=()=>{ const n=Math.floor(state.abyssCoins/100); state.abyssCoins-=n*100; state.abyssAttr.atk+=n*5; save(); renderShop(); toast('深渊专属：攻击 +'+(n*5)+'（累计 +'+state.abyssAttr.atk+'）'); }; }
+const ahp=document.getElementById('abyssBuyHp'); if(ahp){ ahp.disabled=state.abyssCoins<100; ahp.onclick=()=>{ state.abyssCoins-=100; state.abyssAttr.hp+=50; save(); renderShop(); toast('深渊专属：生命 +50（累计 +'+state.abyssAttr.hp+'）'); }; }
+const ahp10=document.getElementById('abyssBuyHp10'); if(ahp10){ ahp10.disabled=state.abyssCoins<1000; ahp10.onclick=()=>{ state.abyssCoins-=1000; state.abyssAttr.hp+=500; save(); renderShop(); toast('深渊专属：生命 +500（累计 +'+state.abyssAttr.hp+'）'); }; }
+const ahpAll=document.getElementById('abyssBuyHpAll'); if(ahpAll){ ahpAll.disabled=state.abyssCoins<100; ahpAll.onclick=()=>{ const n=Math.floor(state.abyssCoins/100); state.abyssCoins-=n*100; state.abyssAttr.hp+=n*50; save(); renderShop(); toast('深渊专属：生命 +'+(n*50)+'（累计 +'+state.abyssAttr.hp+'）'); }; }
+const adef=document.getElementById('abyssBuyDef'); if(adef){ adef.disabled=state.abyssCoins<100; adef.onclick=()=>{ state.abyssCoins-=100; state.abyssAttr.def+=5; save(); renderShop(); toast('深渊专属：防御 +5（累计 +'+state.abyssAttr.def+'）'); }; }
+const adef10=document.getElementById('abyssBuyDef10'); if(adef10){ adef10.disabled=state.abyssCoins<1000; adef10.onclick=()=>{ state.abyssCoins-=1000; state.abyssAttr.def+=50; save(); renderShop(); toast('深渊专属：防御 +50（累计 +'+state.abyssAttr.def+'）'); }; }
+const adefAll=document.getElementById('abyssBuyDefAll'); if(adefAll){ adefAll.disabled=state.abyssCoins<100; adefAll.onclick=()=>{ const n=Math.floor(state.abyssCoins/100); state.abyssCoins-=n*100; state.abyssAttr.def+=n*5; save(); renderShop(); toast('深渊专属：防御 +'+(n*5)+'（累计 +'+state.abyssAttr.def+'）'); }; }
+const ar1=document.getElementById('abyssBuyRebirth1'); if(ar1){ ar1.disabled=state.abyssCoins<30; ar1.onclick=()=>{ state.abyssCoins-=30; state.rebirthChests++; save(); renderShop(); renderBackpack(); toast('获得转生之力宝箱×1'); }; }
+const ar10=document.getElementById('abyssBuyRebirth10'); if(ar10){ ar10.disabled=state.abyssCoins<300; ar10.onclick=()=>{ state.abyssCoins-=300; state.rebirthChests+=10; save(); renderShop(); renderBackpack(); toast('获得转生之力宝箱×10'); }; }
+const ar100=document.getElementById('abyssBuyRebirth100'); if(ar100){ ar100.disabled=state.abyssCoins<3000; ar100.onclick=()=>{ state.abyssCoins-=3000; state.rebirthChests+=100; save(); renderShop(); renderBackpack(); toast('获得转生之力宝箱×100'); }; }
+const arAll=document.getElementById('abyssBuyRebirthAll'); if(arAll){ arAll.disabled=state.abyssCoins<30; arAll.onclick=()=>{ const n=Math.floor(state.abyssCoins/30); state.abyssCoins-=n*30; state.rebirthChests+=n; save(); renderShop(); renderBackpack(); toast('获得转生之力宝箱×'+n); }; }
+const as1=document.getElementById('abyssBuySweep1'); if(as1){ as1.disabled=state.abyssCoins<20; as1.onclick=()=>{ state.abyssCoins-=20; state.sweepCards++; save(); renderShop(); renderBackpack(); toast('获得无尽塔扫荡卡×1'); }; }
+const as10=document.getElementById('abyssBuySweep10'); if(as10){ as10.disabled=state.abyssCoins<200; as10.onclick=()=>{ state.abyssCoins-=200; state.sweepCards+=10; save(); renderShop(); renderBackpack(); toast('获得无尽塔扫荡卡×10'); }; }
+const as100=document.getElementById('abyssBuySweep100'); if(as100){ as100.disabled=state.abyssCoins<2000; as100.onclick=()=>{ state.abyssCoins-=2000; state.sweepCards+=100; save(); renderShop(); renderBackpack(); toast('获得无尽塔扫荡卡×100'); }; }
+const asAll=document.getElementById('abyssBuySweepAll'); if(asAll){ asAll.disabled=state.abyssCoins<20; asAll.onclick=()=>{ const n=Math.floor(state.abyssCoins/20); state.abyssCoins-=n*20; state.sweepCards+=n; save(); renderShop(); renderBackpack(); toast('获得无尽塔扫荡卡×'+n); }; }
+}
+function tradePoints(n){
+if(state.rebirthPoints<n){ toast('转生之力不足'); return; }
+myConfirm('将消耗 '+n+' 点转生之力兑换 '+(n*10)+' 交易点。兑换不可逆，确定吗？',ok=>{
+if(!ok) return;
+state.rebirthPoints-=n; state.tradePoints+=n*10;
+save(); renderShop(); updateHUD();
+toast('兑换成功：+'+(n*10)+' 交易点');
+});
+}
+function tradeReserve(){ return Math.ceil(state.pillTaken/10)+20; } // 一键兑换时保留的转生之力 = 丹药服用次数÷10向上取整 + 20
+function tradeAll(){ // 一键兑换：保留 reserve 点转生之力，其余全换
+const reserve=tradeReserve();
+const n=state.rebirthPoints-reserve;
+if(n<=0){ toast('转生之力需超过 '+reserve+' 点才能一键兑换'); return; }
+myConfirm('将保留 '+reserve+' 点转生之力（丹药服用次数÷10 向上取整 +20），兑换剩余 '+n+' 点为 '+(n*10)+' 交易点。不可逆，确定吗？',ok=>{
+if(!ok) return;
+state.rebirthPoints=reserve; state.tradePoints+=n*10;
+save(); renderShop(); updateHUD();
+toast('一键兑换成功：+'+(n*10)+' 交易点');
+});
+}
+/* 批量概率模拟：大数额开包/抽奖用二项正态近似，避免逐次循环卡顿 */
+function _gauss(){ let u=0,v=0; while(u===0)u=Math.random(); while(v===0)v=Math.random(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
+function _binom(n,p){ if(n<=0||p<=0) return 0; if(p>=1) return n; return Math.max(0,Math.min(n,Math.round(n*p+Math.sqrt(n*p*(1-p))*_gauss()))); }
+function rollPool(n,probs){ // probs 概率数组（和=1），输出各类计数数组，总和=n
+const out=[]; let left=n, pre=0;
+for(let i=0;i<probs.length-1;i++){
+const denom=1-pre; const cond=denom>0?probs[i]/denom:0;
+const c=_binom(left,Math.max(0,Math.min(1,cond)));
+out.push(c); left-=c; pre+=probs[i];
+}
+out.push(Math.max(0,left)); return out;
+}
+function buyTitleAll(){ // 用尽交易点买满山河共主
+if(state.tradePoints<10){ toast('交易点不足，需要至少 10 点'); return; }
+const n=Math.floor(state.tradePoints/10);
+state.tradePoints-=n*10; state.titleCount=capTitle(state.titleCount+n);
+save(); renderShop(); updateHUD();
+toast('一键买满：山河共主 +'+n+'（消耗 '+n*10+' 交易点）');
+}
+function buySlackerAll(){ // 用尽交易点买满摸鱼达人
+if(state.tradePoints<100){ toast('交易点不足，需要至少 100 点'); return; }
+const n=Math.floor(state.tradePoints/100);
+state.tradePoints-=n*100; state.slackerCount=capTitle(state.slackerCount+n);
+save(); renderShop(); updateHUD();
+toast('一键买满：摸鱼达人 +'+n+'（消耗 '+n*100+' 交易点）');
+}
+function buyGiftAll(){ // 用尽交易点开满神秘礼包（批量概率模拟，不卡顿）
+if(state.tradePoints<10){ toast('交易点不足，需要至少 10 点'); return; }
+const n=Math.floor(state.tradePoints/10);
+state.tradePoints-=n*10;
+const c=rollPool(n,[0.004,0.04,0.015,0.025,0.03,0.07,0.816]); // [摸鱼×3, 山河×3, 80TP, 50TP, 5转生, 10TP, 2-4TP]
+const slacker=c[0]*3, title=c[1]*3, tp=c[2]*80+c[3]*50+c[5]*10+c[6]*3, rp=c[4]*5;
+state.titleCount=capTitle(state.titleCount+title); state.slackerCount=capTitle(state.slackerCount+slacker);
+state.tradePoints+=tp; state.rebirthPoints+=rp;
+save(); renderShop(); updateHUD();
+toast('开启礼包 ×'+n+'：山河共主 +'+title+'、摸鱼达人 +'+slacker+'、交易点 +'+tp+'、转生之力 +'+rp);
+}
+/* ============ 欧皇礼包 ============ */
+function luckyProbs(){ // 欧皇礼包概率：签到重置卡 / 无尽扫荡卡 / 差一点就得到了 / 野生狗奶
+const reduce=Math.floor(state.almostCount/100)*0.000001; // 差一点称号每100个，降低欧皇礼包中差一点概率 1/1000000
+let almost=Math.max(0.80,0.9985-reduce); // 差一点概率最低 80%
+let sign=Math.min(0.10,0.001+(0.9985-almost)*2/3); // 签到卡最高 10%（原0.1%的100倍）
+let sweep=Math.min(0.05,0.0005+(0.9985-almost)*1/3); // 扫荡卡最高 5%（原0.05%的100倍）
+let dog=Math.max(0,1-almost-sign-sweep); // 剩余概率给野生狗奶
+return [sign,sweep,almost,dog];
+}
+function openLuckyAll(){ // 用尽交易点开满欧皇礼包（100交易点/个）
+if(state.tradePoints<100){ toast('交易点不足，需要至少 100 点'); return; }
+const n=Math.floor(state.tradePoints/100);
+state.tradePoints-=n*100;
+const probs=luckyProbs();
+const c=rollPool(n,probs); // [签到卡, 扫荡卡, 差一点, 野生狗奶]
+state.signResetCards+=c[0]; state.sweepCards+=c[1]; state.almostCount=capTitle(state.almostCount+c[2]); state.wildDogMilk=(state.wildDogMilk||0)+c[3];
+save(); renderShop(); updateHUD();
+toast('开启欧皇礼包 ×'+n+'：签到重置卡 +'+c[0]+'、无尽扫荡卡 +'+c[1]+'、差一点就得到了 +'+c[2]+'、野生狗奶 +'+c[3]);
+}
+function openLuckyGift(n){
+if(state.tradePoints<n*100){ toast('交易点不足，需要 '+(n*100)); return; }
+state.tradePoints-=n*100;
+const probs=luckyProbs();
+const c=rollPool(n,probs);
+state.signResetCards+=c[0]; state.sweepCards+=c[1]; state.almostCount=capTitle(state.almostCount+c[2]); state.wildDogMilk=(state.wildDogMilk||0)+c[3];
+save(); renderShop(); updateHUD();
+toast('开启欧皇礼包 ×'+n+'：签到重置卡 +'+c[0]+'、无尽扫荡卡 +'+c[1]+'、差一点就得到了 +'+c[2]+'、野生狗奶 +'+c[3]);
+}
+function buyTitle(n){
+const total=n*10;
+if(state.tradePoints<total){ toast('交易点不足，需要 '+total); return; }
+state.tradePoints-=total; state.titleCount=capTitle(state.titleCount+n);
+save(); renderShop(); updateHUD();
+toast('购买成功：山河共主 ×'+n+'（金币 / 经验 +10% / 个）');
+}
+function buySlacker(n){
+const total=n*100;
+if(state.tradePoints<total){ toast('交易点不足，需要 '+total); return; }
+state.tradePoints-=total; state.slackerCount=capTitle(state.slackerCount+n);
+save(); renderShop(); updateHUD();
+toast('购买成功：摸鱼达人 ×'+n+'（副本掉率 / 签到量 / 转生之力 ×'+(1+n)+'）');
+}
+function buyGift(n){
+const total=n*10;
+if(state.tradePoints<total){ toast('交易点不足，需要 '+total); return; }
+state.tradePoints-=total;
+const c=rollPool(n,[0.004,0.04,0.015,0.025,0.03,0.07,0.816]); // [摸鱼×3, 山河×3, 80TP, 50TP, 5转生, 10TP, 2-4TP]
+const slacker=c[0]*3, title=c[1]*3, tp=c[2]*80+c[3]*50+c[5]*10+c[6]*3, rp=c[4]*5;
+state.titleCount=capTitle(state.titleCount+title); state.slackerCount=capTitle(state.slackerCount+slacker);
+state.tradePoints+=tp; state.rebirthPoints+=rp;
+save(); renderShop(); updateHUD();
+toast('开启礼包 ×'+n+'：山河共主 +'+title+'、摸鱼达人 +'+slacker+'、交易点 +'+tp+'、转生之力 +'+rp);
+}
+function sellTitle(n){ // v3.7.9 支持数量参数
+if(!n) n=1;
+if(state.titleCount<1){ toast('没有可回收的山河共主'); return; }
+n=Math.min(n, state.titleCount);
+state.titleCount-=n; state.tradePoints+=n*9;
+save(); renderShop(); updateHUD();
+toast('回收山河共主 ×'+n+'：+'+(n*9)+' 交易点');
+}
+function sellSlacker(n){ // v3.7.9 支持数量参数
+if(!n) n=1;
+if(state.slackerCount<1){ toast('没有可回收的摸鱼达人'); return; }
+n=Math.min(n, state.slackerCount);
+state.slackerCount-=n; state.tradePoints+=n*90;
+save(); renderShop(); updateHUD();
+toast('回收摸鱼达人 ×'+n+'：+'+(n*90)+' 交易点');
+}
+/* ============ v3.0 天赋页渲染 ============ */
+function renderTalents(){
+initDailyTasks();
+const tp=state.talentPoints||{available:0,spent:0,talents:{}};
+let html='<div class="sec-title">天赋系统</div>'
++'<div class="card" style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;align-items:center">'
++'<span>可用天赋点：<b style="color:var(--gold)">'+tp.available+'</b>（每次转生 +1）</span>'
++'<span style="color:var(--muted);font-size:12px">已投入：'+tp.spent+' 点</span></div></div>';
+TALENTS.forEach(t=>{
+const lv=talentLv(t.id);
+const maxed=lv>=t.max;
+html+='<div class="card" style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;align-items:center">'
++'<div><b>'+t.name+'</b> <span style="color:var(--muted);font-size:12px">Lv.'+lv+'/'+t.max+'</span>'
++'<div style="font-size:12px;color:var(--muted);margin-top:2px">'+t.desc+'</div></div>'
++'<button class="btn btn-sm '+(maxed?'btn-disabled':'')+'" onclick="upgradeTalent(\''+t.id+'\')" '+(maxed?'disabled':'')+'>'+(maxed?'已满级':'升级')+'</button>'
++'</div></div>';
+});
+/* 每日任务 */
+html+='<div class="sec-title" style="margin-top:16px">每日任务</div>'
++'<div style="font-size:12px;color:var(--muted);margin-bottom:8px">每天随机 3 个任务，完成后领取交易点奖励（每日 0 点重置）</div>';
+state.dailyTaskIds.forEach(id=>{
+const t=DAILY_TASKS.find(x=>x.id===id);
+if(!t) return;
+const prog=Math.min(state.dailyTaskProgress[id]||0,t.target);
+const done=prog>=t.target;
+const claimed=state.dailyTaskClaimed[id];
+html+='<div class="card" style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;align-items:center">'
++'<div><b>'+t.name+'</b> <span style="color:var(--gold);font-size:12px">+'+t.reward+' 交易点</span>'
++'<div style="font-size:12px;color:var(--muted);margin-top:2px">'+t.desc+'（'+prog+'/'+t.target+'）</div></div>'
++'<button class="btn btn-sm '+(claimed?'btn-disabled':(done?'':'btn-disabled'))+'" onclick="claimDailyTask(\''+id+'\')" '+(claimed||!done?'disabled':'')+'>'+(claimed?'已领取':(done?'领取':'未完成'))+'</button>'
++'</div></div>';
+});
+document.getElementById('tab-talents').innerHTML=html;
+}
+/* ============ v3.1 交易点新用法 ============ */
+function buyAttr(type){
+const cost=ATTR_COST[type];
+if(state.tradePoints<cost){ toast('交易点不足，需要 '+cost); return; }
+state.tradePoints-=cost;
+state.boughtAttr[type]++;
+save(); renderShop(); updateHUD();
+toast('购买成功：'+(type==='atk'?'攻击':type==='hp'?'生命':'防御')+' +1（累计 +'+state.boughtAttr[type]+'）');
+}
+function buyAttrBatch(type,n){ // v3.7.2 批量购买属性点
+const cost=ATTR_COST[type]*n;
+if(state.tradePoints<cost){ toast('交易点不足，需要 '+cost); return; }
+state.tradePoints-=cost;
+state.boughtAttr[type]+=n;
+save(); renderShop(); updateHUD();
+toast('购买成功：'+(type==='atk'?'攻击':type==='hp'?'生命':'防御')+' +'+n+'（累计 +'+state.boughtAttr[type]+'）');
+}
+function buySpeed(){
+if(state.boughtSpeed>=4){ toast('速率已达上限（+2x，总速率最高6x）'); return; }
+if(state.tradePoints<SPEED_COST){ toast('交易点不足，需要 '+SPEED_COST); return; }
+state.tradePoints-=SPEED_COST;
+state.boughtSpeed++;
+save(); renderShop(); updateHUD();
+toast('永久战斗速率 +0.5x（当前 +'+(state.boughtSpeed*0.5)+'x，总速率 '+(1+state.boughtSpeed*0.5)+'x）');
+}
+function buyLuckyCharm(n){
+n=n||1;
+const cost=LUCKY_CHARM_COST*n;
+if(state.tradePoints<cost){ toast('交易点不足，需要 '+cost); return; }
+state.tradePoints-=cost;
+state.luckyCharms+=n;
+save(); renderShop(); updateHUD();
+toast('购买幸运符 ×'+n+'（持有 '+state.luckyCharms+'，下次随机事件必出好结果）');
+}
+function doGacha(n){
+n=n||1;
+const cost=GACHA_COST*n;
+if(state.tradePoints<cost){ toast('交易点不足，需要 '+cost); return; }
+state.tradePoints-=cost;
+let results={tp:0,rp:0,title:0,slacker:0,equip:0};
+for(let i=0;i<n;i++){
+const r=Math.random();
+if(r<0.30){ results.tp+=Math.floor(Math.random()*200)+100; } // 100-300交易点
+else if(r<0.50){ results.rp+=Math.floor(Math.random()*5)+1; } // 1-5转生之力
+else if(r<0.70){ results.title+=Math.floor(Math.random()*10)+1; } // 1-10山河共主
+else if(r<0.85){ results.slacker+=1; } // 1摸鱼达人
+else if(r<0.95){ results.equip+=1; } // 装备
+else { results.tp+=1000; results.rp+=10; } // 大奖
+}
+state.tradePoints+=results.tp;
+state.rebirthPoints+=results.rp;
+state.titleCount=capTitle(state.titleCount+results.title);
+state.slackerCount=capTitle(state.slackerCount+results.slacker);
+if(results.equip>0){ for(let i=0;i<results.equip;i++) dropEquip(); }
+save(); renderShop(); updateHUD();
+toast('抽卡 ×'+n+'：交易点+'+results.tp+'、转生之力+'+results.rp+'、山河共主+'+results.title+'、摸鱼达人+'+results.slacker+'、装备+'+results.equip);
+}
+/* ============ v3.1 竞技场 ============ */
+function arenaResetDaily(){
+const t=todayStr();
+if(state.arenaDate!==t){ state.arenaDate=t; state.arenaUsed=0; }
+}
+function arenaOpponent(){
+// 根据玩家战力生成对手
+const patk=atk(), php=maxHp();
+const diff=0.8+Math.random()*0.5; // 对手战力 80%-130%
+return {
+name:['铁甲勇士','暗影刺客','圣光骑士','狂暴战士','元素法师','龙裔战士'][Math.floor(Math.random()*6)],
+atk:Math.round(patk*diff),
+hp:Math.round(php*diff),
+def:Math.round(defVal()*diff),
+};
+}
+function arenaFight(){
+arenaResetDaily();
+if(state.arenaUsed>=ARENA_DAILY){ toast('今日挑战次数已用完（'+ARENA_DAILY+'/'+ARENA_DAILY+'）'); return; }
+const opp=arenaOpponent();
+const patk=atk(), php=maxHp(), pdef=defVal();
+// 简化战斗：计算双方能打多少回合
+const playerDmg=Math.max(1,patk-opp.def*0.5);
+const oppDmg=Math.max(1,opp.atk-pdef*0.5);
+const playerTurns=Math.ceil(opp.hp/playerDmg);
+const oppTurns=Math.ceil(php/oppDmg);
+state.arenaUsed++;
+if(playerTurns<=oppTurns){
+// 玩家胜
+const tp=ARENA_REWARD_TP+Math.floor(state.arenaWins*5);
+state.arenaWins++;
+state.arenaCoins+=ARENA_REWARD_COIN;
+state.tradePoints+=tp;
+save(); renderArena(); updateHUD();
+toast('竞技场胜利！击败 '+opp.name+'，获得 '+tp+' 交易点、'+ARENA_REWARD_COIN+' 竞技场币');
+}else{
+state.arenaLosses++;
+save(); renderArena();
+toast('竞技场失败...被 '+opp.name+' 击败，明天再来！');
+}
+}
+function arenaBuyItem(type){
+const prices={potion:50,title:200,slacker:500,reset:100};
+const cost=prices[type];
+if(state.arenaCoins<cost){ toast('竞技场币不足，需要 '+cost); return; }
+state.arenaCoins-=cost;
+if(type==='potion'){ state.pills+=10; state.skillPills+=10; state.petPills+=10; toast('兑换丹药大礼包：各塔+10颗'); }
+else if(type==='title'){ state.titleCount=capTitle(state.titleCount+5); toast('兑换山河共主 ×5'); }
+else if(type==='slacker'){ state.slackerCount=capTitle(state.slackerCount+1); toast('兑换摸鱼达人 ×1'); }
+else if(type==='reset'){ state.arenaUsed=Math.max(0,state.arenaUsed-1); toast('恢复1次挑战次数'); }
+save(); renderArena(); updateHUD();
+}
+function renderArena(){
+arenaResetDaily();
+const box=document.getElementById('tab-arena');
+const remain=ARENA_DAILY-state.arenaUsed;
+box.innerHTML=''
++'<div class="stat-row"><div class="label"><span class="title-icon">⚔️</span> 竞技场</div><div class="val">今日剩余 '+remain+' 次</div></div>'
++'<div class="stat-row"><div class="label">战绩</div><div class="val">'+state.arenaWins+'胜 / '+state.arenaLosses+'负</div></div>'
++'<div class="stat-row"><div class="label">竞技场币</div><div class="val" style="color:var(--gold)">'+state.arenaCoins+' 枚</div></div>'
++'<button class="big-btn" id="arenaFightBtn" '+(remain<=0?'disabled':'')+'>'+(remain>0?'挑战对手（剩余 '+remain+' 次）':'今日已用完')+'</button>'
++'<div style="font-size:11px;color:var(--muted);margin:10px 0;line-height:1.7">对手根据你的战力动态生成（80%-130%），胜利获得交易点+竞技场币，连胜奖励递增。每日 '+ARENA_DAILY+' 次。</div>'
++'<div class="stat-row"><div class="label"><b>竞技场币商店</b></div></div>'
++'<div class="stat-row"><div class="label">丹药大礼包（各塔+10）</div><button class="ghost-btn" id="arenaBuyPotion">50 币</button></div>'
++'<div class="stat-row"><div class="label">山河共主 ×5</div><button class="ghost-btn" id="arenaBuyTitle">200 币</button></div>'
++'<div class="stat-row"><div class="label">摸鱼达人 ×1</div><button class="ghost-btn" id="arenaBuySlacker">500 币</button></div>'
++'<div class="stat-row"><div class="label">恢复1次挑战</div><button class="ghost-btn" id="arenaBuyReset">100 币</button></div>';
+document.getElementById('arenaFightBtn').onclick=arenaFight;
+document.getElementById('arenaBuyPotion').onclick=()=>arenaBuyItem('potion');
+document.getElementById('arenaBuyTitle').onclick=()=>arenaBuyItem('title');
+document.getElementById('arenaBuySlacker').onclick=()=>arenaBuyItem('slacker');
+document.getElementById('arenaBuyReset').onclick=()=>arenaBuyItem('reset');
+}
+/* ============ v3.1 钓鱼系统 ============ */
+function startFish(){
+if(state.fishing){ toast('正在钓鱼中...'); return; }
+state.fishing=true;
+state.fishStart=Date.now();
+save(); renderFish();
+toast('开始钓鱼...等待上钩！');
+}
+function checkFish(){
+if(!state.fishing) return;
+if(Date.now()-state.fishStart>=FISH_TIME){
+// 鱼上钩了
+const totalW=FISH_TYPES.reduce((s,f)=>s+f.weight,0);
+let r=Math.random()*totalW;
+let caught=FISH_TYPES[0];
+for(const f of FISH_TYPES){ r-=f.weight; if(r<=0){ caught=f; break; } }
+state.fishCaught[caught.name]=(state.fishCaught[caught.name]||0)+1;
+state.fishTotal++;
+state.fishing=false;
+const tpGain=caught.value;
+state.tradePoints+=tpGain;
+save(); renderFish(); updateHUD();
+toast('钓到了【'+caught.rarity+'】'+caught.name+'！价值 '+tpGain+' 交易点');
+}
+}
+function sellFish(name){
+const cnt=state.fishCaught[name]||0;
+if(cnt<1){ toast('没有这种鱼'); return; }
+const fish=FISH_TYPES.find(f=>f.name===name);
+if(!fish) return;
+state.fishCaught[name]--;
+state.tradePoints+=fish.value;
+save(); renderFish(); updateHUD();
+toast('出售 '+name+'，获得 '+fish.value+' 交易点');
+}
+function renderFish(){
+const box=document.getElementById('tab-fish');
+let fishHtml='';
+let totalValue=0;
+FISH_TYPES.forEach(f=>{
+const cnt=state.fishCaught[f.name]||0;
+totalValue+=cnt*f.value;
+const color=f.rarity==='神话'?'var(--fire)':f.rarity==='传说'?'var(--purple,#b06bff)':f.rarity==='史诗'?'var(--gold)':f.rarity==='稀有'?'var(--cyan)':'var(--muted)';
+fishHtml+='<div class="stat-row"><div class="label" style="color:'+color+'">['+f.rarity+'] '+f.name+'</div><div class="val">×'+cnt+' <button class="ghost-btn" style="margin-left:8px" onclick="sellFish(\''+f.name+'\')" '+(cnt<1?'disabled':'')+'>出售 +'+f.value+'</button></div></div>';
+});
+box.innerHTML=''
++'<div class="stat-row"><div class="label"><span class="title-icon">🎣</span> 休闲钓鱼</div><div class="val">累计 '+state.fishTotal+' 条</div></div>'
++'<div class="stat-row"><div class="label">背包鱼总价值</div><div class="val" style="color:var(--gold)">'+totalValue+' 交易点</div></div>'
++(state.fishing
+?'<div style="text-align:center;padding:20px"><div style="font-size:40px">🎣</div><div style="color:var(--cyan);margin-top:8px">正在钓鱼中... '+Math.max(0,Math.ceil((FISH_TIME-(Date.now()-state.fishStart))/1000))+'秒后上钩</div></div>'
+:'<button class="big-btn" id="startFishBtn">开始钓鱼（5秒后上钩）</button>')
++'<div style="font-size:11px;color:var(--muted);margin:10px 0;line-height:1.7">钓鱼是纯休闲玩法，不影响战斗。每次5秒，随机获得7种品质的鱼，鱼可出售换取交易点。神话级「you的鱼」价值2000交易点！</div>'
++'<div class="stat-row"><div class="label"><b>鱼获图鉴</b></div></div>'
++fishHtml;
+const btn=document.getElementById('startFishBtn');
+if(btn) btn.onclick=startFish;
+}
+/* ============ v3.1 老玩家补偿 ============ */
+function claimVeteran(){
+if(state.veteranClaimed){ toast('补偿已领取'); return; }
+const bonus=veteranBonus();
+state.tradePoints+=bonus.tp;
+state.rebirthPoints+=bonus.rp;
+if(bonus.title) state.titleCount=capTitle(state.titleCount+1);
+state.veteranClaimed=true;
+save(); renderSettings(); updateHUD();
+toast('老玩家补偿已发放：'+bonus.tp+' 交易点、'+bonus.rp+' 转生之力'+(bonus.title?'、专属称号「'+bonus.title+'」':''));
+}
+function renderAll(){
+renderAttrs(); renderSkills(); renderEquip(); renderRebirth(); renderTalents(); renderTitles(); renderBackpack(); renderDungeon(); renderArena(); renderFish(); renderBossChallenge(); renderShop(); renderAch(); renderSettings();
+}
+/* v3.6.1 只渲染当前激活的tab，避免切换时渲染全部页面造成卡顿 */
+function renderCurrentTab(){
+const activeTab=document.querySelector('.tab.active');
+if(!activeTab) return;
+const tabName=activeTab.dataset.tab;
+const renderMap={
+attrs:renderAttrs,skills:renderSkills,equip:renderEquip,rebirth:renderRebirth,
+talents:renderTalents,titles:renderTitles,backpack:renderBackpack,dungeon:renderDungeon,
+arena:renderArena,fish:renderFish,boss:renderBossChallenge,shop:renderShop,
+ach:renderAch,settings:renderSettings
+};
+if(renderMap[tabName]) renderMap[tabName]();
+}
+/* ============ 初始化 ============ */
+function init(){
+load();
+document.body.classList.toggle('compact-info',!!state.compactInfo);
+fightReset();
+renderAll(); updateHUD(); updateBattle();
+bindConfirm();
+document.getElementById('tabs').addEventListener('click',e=>{
+const tab=e.target.closest('.tab'); if(!tab) return;
+document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+document.querySelectorAll('.tab-body').forEach(b=>b.classList.remove('active'));
+tab.classList.add('active');
+document.getElementById('tab-'+tab.dataset.tab).classList.add('active');
+renderCurrentTab(); // 只渲染当前tab，避免卡顿
+});
+/* v3.1.1 副本二级标签事件委托：一次绑定，innerHTML 重建也不丢失 */
+document.getElementById('tab-dungeon').addEventListener('click',e=>{
+const btn=e.target.closest('.dungeon-tab-btn'); if(!btn) return;
+state.dungeonView=btn.dataset.mode; save(); renderDungeon();
+});
+/* v3.7.6 快速暂停按钮 */
+const qpb=document.getElementById('quickPauseBtn'); if(qpb) qpb.onclick=()=>{ state.paused=!state.paused; qpb.textContent=state.paused?'▶️':'⏸️'; save(); toast(state.paused?'战斗已暂停':'战斗已继续'); };
+handleOffline();
+setInterval(tick,150); // v3.8.3 从100ms调整为150ms，超大数据时减少计算量
+setInterval(updateBattle,400); // v3.8.3 从300ms调整为400ms，减少渲染次数
+setInterval(updateHUD,1200); // v3.8.3 从800ms调整为1200ms，HUD不需要太频繁更新
+setInterval(checkAchievements,8000); // v3.8.3 从5000ms调整为8000ms
+setInterval(save,60000); // v3.8.3 从30000ms调整为60000ms，超大数据时大幅减少JSON序列化开销
+window.addEventListener('beforeunload',save);
+window.addEventListener('resize',()=>{ _battleRectCache=null; }); // v3.7.5 窗口大小变化时清除缓存，下次spawnDmg重新获取
+}
+init();
+})();
+</script>
+</body>
+</html>
